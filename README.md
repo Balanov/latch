@@ -140,6 +140,8 @@ npm run bench
 npm ci --prefix bench/competitors --ignore-scripts
 npm run bench:compare
 node test/browser-check.mjs
+node test/public-provider-check.mjs # network required; also runnable manually in CI
+php test/php-provider-selftest.php # full simulated flow on a PHP host
 ```
 
 - `BENCHMARKS.md`: intrinsic file size, cold start, and local full-flow measurements.
