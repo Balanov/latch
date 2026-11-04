@@ -35,7 +35,8 @@ let taskId;
 let receipt;
 
 try {
-  const card = await client.connect();
+  await client.connect();
+  const card = client.card;
   assert.equal(card.latch, "0.1");
   assert.equal(new URL(card.endpoint).origin, new URL(cardUrl).origin);
   assert.ok(card.capabilities.some((capability) => capability.id === "print3d.order"));
