@@ -1,0 +1,28 @@
+{
+  "name": "latch-protocol",
+  "version": "0.1.0",
+  "description": "One tiny HTTPS contract between any agent and any service.",
+  "homepage": "https://latch.balanov.pro/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Balanov/latch.git"
+  },
+  "type": "module",
+  "bin": {
+    "latch": "./latch.mjs"
+  },
+  "exports": "./latch.mjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "demo": "node latch.mjs demo",
+    "trace": "node latch.mjs demo --trace examples/trace.json && node scripts/export-trace.mjs",
+    "bench": "node bench/run.mjs",
+    "build": "npm run build --prefix app"
+  },
+  "keywords": ["agents", "llm", "protocol", "connector", "agentic-web"],
+  "author": "Anton Balanov",
+  "license": "MIT"
+}

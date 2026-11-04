@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use LATCH, please cite it."
+title: "LATCH: One Tiny HTTPS Contract Between Any Agent and Any Service"
+authors:
+  - family-names: Balanov
+    given-names: Anton
+year: 2026
+version: 0.1.0
+license: MIT
+repository-code: https://github.com/Balanov/latch
+url: https://latch.balanov.pro/
+type: software

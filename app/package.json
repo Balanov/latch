@@ -1,0 +1,11 @@
+{
+  "name": "latch-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zero-dependency bilingual static page for the LATCH protocol.",
+  "scripts": {
+    "dev": "node dev.mjs",
+    "build": "node build.mjs"
+  }
+}
