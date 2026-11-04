@@ -220,7 +220,7 @@ try {
       if (error.message === "The preview server is still running.") throw error;
     }
   }
-  await rm(profile, { recursive: true, force: true });
+  await rm(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
   await writeFile(path.join(output, "report.json"), JSON.stringify(report, null, 2));
   console.log(localPreview ? "Temporary browser, provider, and preview stopped" : "Temporary browser stopped; public services unchanged");
 }
