@@ -1,14 +1,14 @@
 # LATCH local measurements
 
-Measured 2026-11-04T14:18:01.867Z. This is a reproducible local baseline, **not a claim that LATCH is faster than every protocol**. No competing implementation was measured.
+Measured 2026-11-04T20:14:09.266Z. This is a reproducible intrinsic local baseline. For the official MCP SDK comparison see [COMPARISONS.md](COMPARISONS.md); neither report is a universal protocol ranking.
 
 | Property | Measured value |
 | --- | ---: |
-| Reference implementation | 1 ESM file, 42,221 bytes |
+| Reference implementation | 1 ESM file, 47,461 bytes |
 | Runtime dependencies | 0 |
 | Node.js requirement | >=20 |
-| Cold CLI start, median / p95 | 55.38 / 61.80 ms |
-| Complete local flow, median / p95 | 1.59 / 2.27 ms |
+| Cold CLI start, median / p95 | 59.30 / 61.14 ms |
+| Complete local flow, median / p95 | 1.58 / 2.03 ms |
 
 ## Environment
 
@@ -23,14 +23,14 @@ client and in-memory reference provider in one Node.js process; real HTTP over l
 
 | Operation | n | Median (ms) | p95 (ms) | Mean (ms) |
 | --- | ---: | ---: | ---: | ---: |
-| Cold CLI start | 60 | 55.38 | 61.80 | 56.16 |
-| ask | 100 | 0.54 | 1.06 | 0.61 |
-| quote | 100 | 0.48 | 0.96 | 0.55 |
-| commit | 100 | 0.87 | 1.42 | 0.99 |
-| status | 100 | 1.07 | 2.19 | 1.24 |
-| Complete flow | 100 | 1.59 | 2.27 | 1.75 |
+| Cold CLI start | 60 | 59.30 | 61.14 | 59.56 |
+| ask | 100 | 0.47 | 1.05 | 0.55 |
+| quote | 100 | 0.47 | 1.03 | 0.53 |
+| commit | 100 | 0.86 | 1.49 | 1.02 |
+| status | 100 | 0.98 | 1.85 | 1.15 |
+| Complete flow | 100 | 1.58 | 2.03 | 1.67 |
 
-The complete flow includes discovery, ask, quote, commit, and status. Cold start measures a new Node process running `node latch.mjs --version`. Commit/status samples obtain a fresh valid offer before the timed operation. performance.now() around awaited operations. Fixed warmup runs precede measured runs. p95 is the nearest-rank sample. No other protocol is measured; no cross-protocol or production-performance ranking is claimed.
+The complete flow includes discovery, ask, quote, commit, and status. Cold start measures a new Node process running `node latch.mjs --version`. Commit/status samples obtain a fresh valid offer before the timed operation. performance.now() around awaited operations. Fixed warmup runs precede measured runs. p95 is the nearest-rank sample. No other protocol is measured in this intrinsic report; see COMPARISONS.md for the official MCP comparison.
 
 ## Reproduce and inspect
 

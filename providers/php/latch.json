@@ -1,0 +1,47 @@
+{
+  "latch": "0.1",
+  "name": "LATCH PHP demo",
+  "description": "Independent PHP simulation. No payment, manufacturing, or delivery occurs.",
+  "url": "https://balanov.pro/latch/",
+  "endpoint": "https://balanov.pro/latch/api/",
+  "capabilities": [
+    {
+      "id": "materials.list",
+      "description": "List simulated printing materials and EUR minor-unit prices.",
+      "mode": "read",
+      "input": {"type": "object", "additionalProperties": false},
+      "effects": "none",
+      "approval": "never"
+    },
+    {
+      "id": "print3d.order",
+      "description": "Quote and record a simulated print order. Never manufactures or ships anything.",
+      "mode": "write",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["model_url", "material", "quantity", "delivery"],
+        "properties": {
+          "model_url": {"type": "string", "minLength": 8, "maxLength": 2048},
+          "material": {"type": "string", "enum": ["pla", "petg", "resin"]},
+          "quantity": {"type": "integer", "minimum": 1, "maximum": 100},
+          "delivery": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["country", "postal_code"],
+            "properties": {
+              "country": {"type": "string", "minLength": 2, "maxLength": 2},
+              "postal_code": {"type": "string", "minLength": 2, "maxLength": 20}
+            }
+          }
+        }
+      },
+      "effects": "irreversible",
+      "approval": "required"
+    }
+  ],
+  "links": {
+    "spec": "https://github.com/Balanov/latch/blob/main/SPEC.md",
+    "repository": "https://github.com/Balanov/latch"
+  }
+}

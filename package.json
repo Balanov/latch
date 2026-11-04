@@ -1,8 +1,8 @@
 {
   "name": "latch-protocol",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One tiny HTTPS contract between any agent and any service.",
-  "homepage": "https://latch.kimi.page/",
+  "homepage": "https://balanov.pro/latch/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Balanov/latch.git"
@@ -20,6 +20,7 @@
     "demo": "node latch.mjs demo",
     "trace": "node latch.mjs demo --trace examples/trace.json && node scripts/export-trace.mjs",
     "bench": "node bench/run.mjs",
+    "bench:compare": "node bench/competitors/compare.mjs && node scripts/export-comparison.mjs",
     "build": "npm run build --prefix app"
   },
   "keywords": ["agents", "llm", "protocol", "connector", "agentic-web"],

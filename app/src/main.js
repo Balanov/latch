@@ -1,286 +1,298 @@
-import { trace } from "./trace.js";
 import { metrics } from "./metrics.js";
+import { comparison } from "./comparison.js";
 
+const CARD_URL = "https://balanov.pro/latch/api/latch.json";
 const copy = {
   ru: {
-    pageTitle: "LATCH — любой агент. Любой сервис.", skip: "К содержанию", navLabel: "Основная навигация",
-    navProtocol: "Протокол", navFlow: "Как работает", navBench: "Замеры", kicker: "Открытый коннектор · MIT",
-    title: "Любой агент.<br>Любой сервис.<br><span>Один контракт.</span>",
-    lede: "Минимальная HTTPS-связь между агентом и реальным действием. Без обязательного SDK, посредника и новой экосистемы ради экосистемы.",
-    run: "Запустить локально", readSpec: "Прочитать спецификацию", diagramLabel: "Схема соединения LATCH", diagramImage: "Две половины соединяются",
-    diagramState: "ТОЧНОЕ СОГЛАСИЕ", factsLabel: "Факты о проекте", factBytes: "байт · один ESM-файл", factDeps: "runtime-зависимостей", factOps: "операций · один endpoint", factLicense: "форки приветствуются",
-    contractTitle: "Не ещё один<br>агентный стек.", contractLead: "LATCH — незаметный контракт первого подключения. Он не заменяет MCP, A2A, OpenAPI или платёжные протоколы. Он даёт агенту, у которого уже есть HTTPS, понятный путь от возможности сервиса до проверяемого результата.",
-    contractOne: "Одна карта возможностей", contractTwo: "Один JSON endpoint", contractThree: "Явная граница действия", contractThreeText: "Котировка не выполняет заказ. Commit повторяет digest точных условий.", contractFour: "Никакого центрального узла", contractFourText: "Нет реестра, аккаунтов, телеметрии, hosted proxy и платы за соединение.", researchLink: "Зачем ещё один слой: исследование протоколов",
-    flowTitle: "Шесть шагов.<br>Ничего скрытого.", flowLead: "Настоящий обмен с локальным reference-сервером. Пример — симуляция 3D-печати: ни оплаты, ни производства, ни доставки не происходит.", traceAgent: "Агент", traceService: "Сервис", recorded: "Записано локально", stepsLabel: "Шаги протокола", messageLabel: "Сообщение трассировки", request: "Запрос", response: "Ответ", copy: "Копировать", copyShort: "Копировать", copyJson: "Копировать JSON", playText: "Проиграть", pauseText: "Пауза", play: "Проиграть трассировку", pause: "Остановить трассировку", previous: "Предыдущий шаг", next: "Следующий шаг", traceHint: "← → для навигации · Space для паузы", traceSource: "Источник: реальный examples/trace.json. Шаг approve локальный; Idempotency-Key — HTTP-заголовок.",
-    quickTitle: "Проверьте код,<br>а не обещание.", quickLead: "Node 20+. Ноль runtime-зависимостей. Тесты и полное локальное демо запускаются без регистрации и внешнего API.", providerStart: "Я подключаю сервис", agentStart: "Я подключаю агента", inviteTitle: "Сервис ещё не подключён?", inviteText: "Сформируйте приглашение и отправьте его владельцу сами. LATCH не ставит чужой код, не создаёт issue и ничего не отправляет автоматически.", copyCommand: "Копировать команду приглашения",
-    layersTitle: "Сохраните стек.<br>Добавьте границу.", layersLead: "Используйте HTTP напрямую, однофайловый CLI или необязательный MCP stdio-мост. Для богатых commerce- и payment-сценариев подключайте профильные протоколы, а не раздувайте ядро.", layersLabel: "Совместимые слои протоколов", layerNeed: "Задача", layerUse: "Подходящий слой", layerOne: "Первое подключение и подтверждение действия", layerTwo: "Инструменты, ресурсы и приложения внутри хоста", layerThree: "Делегирование автономной задачи агенту", layerFour: "API, детерминированные workflows", layerFive: "Checkout, fulfillment, платёжные mandates",
-    benchTitle: "Измерено здесь.<br>Воспроизводимо везде.", benchLead: "Локальный baseline этого reference-кода. Не сравнение протоколов и не обещание production-latency. В отчёте — Node, ОС, CPU, команды и исходные samples.", coldLabel: "Холодный запуск CLI", flowLabel: "Полный loopback-цикл", benchCaption: "performance.now() · медиана и nearest-rank p95", benchOperation: "Операция", benchLimit: "Клиент и in-memory сервер находятся в одном процессе; HTTP проходит по loopback. Нет TLS, внешней сети, persistent storage или физической работы. Для честного сравнения нужны эквивалентные реализации.", benchReport: "Методика и все числа", benchRaw: "Исходные samples",
-    limitsTitle: "Чего LATCH<br>не доказывает.", limitsLead: "Минимальный протокол полезен ровно настолько, насколько честны его границы.", limitOne: "Digest ≠ согласие человека.", limitOneText: "Он связывает содержимое предложения, но не удостоверяет личность или полномочия.", limitTwo: "Receipt ≠ физическое доказательство.", limitTwoText: "Это утверждение провайдера, а не независимое наблюдение печати или доставки.", limitThree: "Idempotency ≠ exactly once в реальности.", limitThreeText: "Повторная обработка исключена в окне хранения провайдера; внешнее действие нельзя отменить хешем.", limitFour: "Reference ≠ production-инфраструктура.", limitFourText: "In-memory хранение не заменяет аутентификацию, авторизацию, persistence, rate limits и вашу политику безопасности.", securityLink: "Threat model и безопасность",
-    sourceTitle: "Форкайте.<br>Переносите.<br>Улучшайте.", sourceText: "Один маленький контракт, который не требует нашей инфраструктуры. Независимые реализации, тесты совместимости и реальные адаптеры нужнее громких заявлений.", statsLabel: "Живая статистика GitHub-репозитория", stars: "Звёзды", forks: "Форки", statsLoading: "GitHub API…", statsLive: "данные GitHub API", statsError: "счётчики недоступны · открыть GitHub ↗", license: "MIT · используйте, изменяйте, распространяйте.",
-    citeTitle: "Ссылка на работу", copyBib: "Копировать BibTeX", footer: "Открытая спецификация и reference-реализация. Anton Balanov, 2026.", backTop: "Наверх",
-    copied: "Скопировано в буфер обмена", copyError: "Не удалось скопировать. Выделите текст вручную.", transport: "Транспорт", localBoundary: "Локальная граница", noNetwork: "Нет сетевого запроса", exactTerms: "Точные условия", evidence: "Доказательство", providerAssertion: "Утверждение провайдера", task: "Задача", simulation: "Симуляция · нет физического действия",
-    steps: [
-      { title: "Найти контракт", description: "Агент запрашивает одну карту по известному origin. Никакого реестра, логина или предварительной интеграции. Ответ — данные, а не инструкции." },
-      { title: "Прочитать, ничего не меняя", description: "Операция ask вызывает read-capability. В этом примере сервис возвращает список симулированных материалов и цен без побочных эффектов." },
-      { title: "Получить точное предложение", description: "quote готовит действие, но не выполняет его. Сервер возвращает условия, срок действия и digest, который клиент независимо пересчитывает." },
-      { title: "Подтвердить именно это", description: "Локальная граница: пользователь или доверенный хост проверяет условия и привязывает решение к digest. Этот шаг не отправляется как отдельный сетевой запрос." },
-      { title: "Выполнить без дубликата", description: "commit повторяет digest и несёт Idempotency-Key в HTTP-заголовке. Повтор с тем же ключом и содержимым вернёт исходную задачу, а не создаст новую." },
-      { title: "Получить результат и его границу", description: "status возвращает задачу и receipt. Метка provider_assertion прямо говорит: это отчёт сервиса, а не независимое доказательство физического действия." }
-    ]
+    pageTitle: "LATCH — JSON/HTTPS для агентов и сервисов", skip: "К коду", nav: "Основная навигация", navTry: "Live", navBench: "Замеры", navIntegrate: "Интеграция", copy: "Копировать",
+    title: "Агент → сервис.<br>Без обязательного SDK.", lede: "Одна карта, пять операций, точный digest предложения и безопасный повтор commit.", bytes: "байт · 1 ESM", deps: "runtime deps", ops: "операций",
+    liveTitle: "Запросить. Проверить. Выполнить.", liveText: "Независимый PHP-provider на balanov.pro. Только симуляция заказа: никакой оплаты, печати или доставки.", privacy: "Не вводите секреты или реальные адреса. Это публичная симуляция.", discover: "Карта", quote: "Котировка", approve: "Проверил условия и digest", commit: "Commit", receipt: "Receipt", replay: "Повторить с тем же ключом", reset: "Сбросить форму", idle: "Соединение не выполнялось", request: "Запрос", response: "Ответ", messageView: "Просмотр сообщения", copyJson: "Копировать JSON", approvalNote: "Checkbox — локальное подтверждение, не идентификация человека. Receipt — утверждение провайдера, не доказательство физического действия.",
+    benchTitle: "Один read. Одинаковые входные.", benchText: "Медиана, Node.js, loopback, 100 вызовов после warmup. Не production и не общий рейтинг протоколов.", contact: "Первый контакт", benchNote: "* HTTP baseline без discovery и валидации — нижняя граница, не эквивалент безопасности. MCP: официальный stateless server на каждый запрос. Все числа и samples в репозитории.", methodology: "Методика ↗",
+    integrateTitle: "Три способа подключить.", examples: "Примеры интеграции", provider: "Сервис", agent: "Агент", storage: "Хранение", limitsTitle: "Границы", limit1: "Digest ≠ согласие человека.", limit2: "Receipt ≠ независимое доказательство.", limit3: "Idempotency ≠ exactly-once внешнего мира.", limit4: "Production: auth, HTTPS, durable store, rate limits.", inviteTitle: "Сервиса нет в списке?", inviteText: "Текстовое приглашение. Ничего не отправляет и не устанавливает автоматически.", copyCommand: "Копировать команду приглашения", statsLoading: "GitHub API…", statsLive: "данные GitHub API", statsError: "счётчики недоступны", copied: "Скопировано", copyError: "Не удалось скопировать — текст выделен",
+    needCard: "Сначала получите карту сервиса", needApproval: "Проверьте digest и отметьте подтверждение", changed: "Входные изменены — нужна новая котировка", loading: "Запрос выполняется…", cardDone: "Карта получена · PHP endpoint готов", quoteDone: "Котировка получена · digest совпал", approveDone: "Условия отмечены · commit ещё не выполнен", commitDone: "Симуляция записана · заказ не является физическим", receiptDone: "Receipt получен · provider_assertion", replayDone: "Replay вернул тот же task.id", resetDone: "Форма сброшена; карта сохранена"
   },
   en: {
-    pageTitle: "LATCH — Any agent. Any service.", skip: "Skip to content", navLabel: "Main navigation",
-    navProtocol: "Protocol", navFlow: "How it works", navBench: "Benchmarks", kicker: "Open connector · MIT",
-    title: "Any agent.<br>Any service.<br><span>One small contract.</span>",
-    lede: "A minimal HTTPS connection from an agent to a real action. No mandatory SDK, middleman, or new ecosystem for its own sake.",
-    run: "Run it locally", readSpec: "Read the specification", diagramLabel: "LATCH connection schematic", diagramImage: "Two halves connecting", diagramState: "EXACT AGREEMENT", factsLabel: "Project facts", factBytes: "bytes · one ESM file", factDeps: "runtime dependencies", factOps: "operations · one endpoint", factLicense: "forks welcome",
-    contractTitle: "Not another<br>agent stack.", contractLead: "LATCH is a small first-contact contract. It does not replace MCP, A2A, OpenAPI, or payment protocols. It gives any agent with HTTPS a legible path from a service capability to a verifiable result.",
-    contractOne: "One capability card", contractTwo: "One JSON endpoint", contractThree: "An explicit action boundary", contractThreeText: "A quote does not execute an order. Commit repeats the digest of the exact terms.", contractFour: "No central node", contractFourText: "No registry, accounts, telemetry, hosted proxy, or connection fees.", researchLink: "Why another layer: protocol research",
-    flowTitle: "Six steps.<br>Nothing hidden.", flowLead: "A real exchange with the local reference server. The example simulates 3D printing: no payment, manufacturing, or delivery occurs.", traceAgent: "Agent", traceService: "Service", recorded: "Recorded locally", stepsLabel: "Protocol steps", messageLabel: "Trace message", request: "Request", response: "Response", copy: "Copy", copyShort: "Copy", copyJson: "Copy JSON", playText: "Play trace", pauseText: "Pause", play: "Play trace", pause: "Pause trace", previous: "Previous step", next: "Next step", traceHint: "← → to navigate · Space to pause", traceSource: "Source: actual examples/trace.json. Approval is local; Idempotency-Key is an HTTP header.",
-    quickTitle: "Test the code,<br>not the promise.", quickLead: "Node 20+. Zero runtime dependencies. Tests and the complete local demo need no account or external API.", providerStart: "I provide a service", agentStart: "I connect an agent", inviteTitle: "Service not connected yet?", inviteText: "Generate an invite and send it to the owner yourself. LATCH does not install third-party code, create issues, or send anything automatically.", copyCommand: "Copy invite command",
-    layersTitle: "Keep your stack.<br>Add the boundary.", layersLead: "Use plain HTTP, the one-file CLI, or the optional MCP stdio bridge. For rich commerce and payment scenarios, compose with dedicated protocols instead of bloating the core.", layersLabel: "Composable protocol layers", layerNeed: "Need", layerUse: "Appropriate layer", layerOne: "First contact and action commitment", layerTwo: "Tools, resources, and apps inside a host", layerThree: "Delegating an autonomous task to an agent", layerFour: "APIs and deterministic workflows", layerFive: "Checkout, fulfillment, payment mandates",
-    benchTitle: "Measured here.<br>Reproducible anywhere.", benchLead: "A local baseline of this reference code. Not a protocol ranking or a production-latency promise. The report includes Node, OS, CPU, commands, and raw samples.", coldLabel: "Cold CLI start", flowLabel: "Complete loopback flow", benchCaption: "performance.now() · median and nearest-rank p95", benchOperation: "Operation", benchLimit: "The client and in-memory server share one process; HTTP uses loopback. No TLS, external network, persistent storage, or physical work. A fair comparison requires equivalent implementations.", benchReport: "Methodology and all numbers", benchRaw: "Raw samples",
-    limitsTitle: "What LATCH<br>does not prove.", limitsLead: "A minimal protocol is useful only when its boundaries are honest.", limitOne: "Digest ≠ human consent.", limitOneText: "It binds offer content, not a person's identity or authority.", limitTwo: "Receipt ≠ physical evidence.", limitTwoText: "It is a provider assertion, not independent observation of printing or delivery.", limitThree: "Idempotency ≠ exactly-once reality.", limitThreeText: "Duplicate handling is prevented inside the provider's retention window; a hash cannot undo an external effect.", limitFour: "Reference ≠ production infrastructure.", limitFourText: "In-memory storage does not replace authentication, authorization, persistence, rate limits, or your security policy.", securityLink: "Threat model and security",
-    sourceTitle: "Fork it.<br>Port it.<br>Improve it.", sourceText: "One small contract that needs none of our infrastructure. Independent implementations, interoperability tests, and real adapters matter more than big claims.", statsLabel: "Live GitHub repository statistics", stars: "Stars", forks: "Forks", statsLoading: "GitHub API…", statsLive: "live GitHub API", statsError: "counts unavailable · open GitHub ↗", license: "MIT · use, modify, redistribute.",
-    citeTitle: "Cite this work", copyBib: "Copy BibTeX", footer: "Open specification and reference implementation. Anton Balanov, 2026.", backTop: "Back to top",
-    copied: "Copied to clipboard", copyError: "Could not copy. Select the text manually.", transport: "Transport", localBoundary: "Local boundary", noNetwork: "No network request", exactTerms: "Exact terms", evidence: "Evidence", providerAssertion: "Provider assertion", task: "Task", simulation: "Simulation · no physical action",
-    steps: [
-      { title: "Discover the contract", description: "The agent requests one card at a known origin. No registry, login, or prior integration. The response is data, never instructions." },
-      { title: "Read without changing anything", description: "ask invokes a read capability. Here, the service returns simulated materials and prices without side effects." },
-      { title: "Get an exact offer", description: "quote prepares an action without executing it. The server returns terms, expiry, and a digest that the client independently recomputes." },
-      { title: "Approve exactly this", description: "A local boundary: the user or trusted host reviews the terms and binds the decision to the digest. This is not a separate network request." },
-      { title: "Commit without a duplicate", description: "commit repeats the digest and sends Idempotency-Key as an HTTP header. Reusing the key and content returns the original task, not a new one." },
-      { title: "Get a result and its boundary", description: "status returns the task and receipt. provider_assertion makes it clear: this is the service's report, not independent proof of a physical action." }
-    ]
+    pageTitle: "LATCH — JSON/HTTPS for agents and services", skip: "Skip to code", nav: "Main navigation", navTry: "Live", navBench: "Benchmarks", navIntegrate: "Integrate", copy: "Copy",
+    title: "Agent → service.<br>No mandatory SDK.", lede: "One card, five operations, exact offer digest, and safe commit retries.", bytes: "bytes · 1 ESM", deps: "runtime deps", ops: "operations",
+    liveTitle: "Request. Review. Commit.", liveText: "An independent PHP provider on balanov.pro. Simulated orders only: no payment, manufacturing, or delivery.", privacy: "Do not enter secrets or real addresses. This is a public simulation.", discover: "Discover", quote: "Quote", approve: "I reviewed terms and digest", commit: "Commit", receipt: "Receipt", replay: "Replay with the same key", reset: "Reset form", idle: "No connection made yet", request: "Request", response: "Response", messageView: "Message view", copyJson: "Copy JSON", approvalNote: "The checkbox is local confirmation, not human identification. A receipt is a provider assertion, not proof of a physical action.",
+    benchTitle: "One read. Same inputs.", benchText: "Median, Node.js, loopback, 100 calls after warmup. Not production or a general protocol ranking.", contact: "First contact", benchNote: "* HTTP baseline without discovery or validation is a lower bound, not a security equivalent. MCP: official stateless server per request. All numbers and samples are in the repository.", methodology: "Methodology ↗",
+    integrateTitle: "Three ways to connect.", examples: "Integration examples", provider: "Provider", agent: "Agent", storage: "Storage", limitsTitle: "Boundaries", limit1: "Digest ≠ human consent.", limit2: "Receipt ≠ independent physical evidence.", limit3: "Idempotency ≠ exactly-once external effects.", limit4: "Production: auth, HTTPS, durable store, rate limits.", inviteTitle: "Service not connected?", inviteText: "A reviewable text invite. It does not send or install anything automatically.", copyCommand: "Copy invite command", statsLoading: "GitHub API…", statsLive: "live GitHub API", statsError: "counters unavailable", copied: "Copied", copyError: "Copy failed — text selected",
+    needCard: "Discover the service card first", needApproval: "Verify the digest and confirm explicitly", changed: "Input changed — request a new quote", loading: "Request in flight…", cardDone: "Card received · PHP endpoint ready", quoteDone: "Quote received · digest matched", approveDone: "Terms confirmed · commit has not run", commitDone: "Simulation recorded · no physical order", receiptDone: "Receipt received · provider_assertion", replayDone: "Replay returned the same task.id", resetDone: "Form reset; card retained"
   }
 };
-
+const examples = {
+  provider: { label: "NODE PROVIDER", code: `npx --yes github:Balanov/latch init my-service\ncd my-service\nnpm install\nnode service.mjs` },
+  agent: { label: "PLAIN HTTPS / MCP OPTIONAL", code: `POST /latch HTTP/1.1\nContent-Type: application/json\n\n{"latch":"0.1","id":"req_1","op":"ask","capability":"materials.list","input":{}}\n\n# Optional MCP stdio bridge:\nnpx --yes github:Balanov/latch mcp --target https://balanov.pro/latch/api/latch.json` },
+  storage: { label: "RESTART / CALLER SCOPING", code: `import { createDemoProvider, createFileStore, listen } from "latch-protocol";\n\nconst server = createDemoProvider({\n  store: createFileStore("./data/latch.json"),\n  authenticate: async (request) => verifyRequest(request)\n  // Your verifier returns a stable principal id or null.\n});\nawait listen(server, { port: 8787 });\n// On shutdown: await server.latch.close();` }
+};
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-let language = ["ru", "en"].includes(localStorage.getItem("latch-language"))
-  ? localStorage.getItem("latch-language")
-  : (navigator.language.toLowerCase().startsWith("ru") ? "ru" : "en");
-let currentStep = 0;
-let message = "request";
-let playing = false;
-let playTimer;
+let language = localStorage.getItem("latch-language") || (navigator.language.startsWith("ru") ? "ru" : "en");
+let message = "response";
+let example = "provider";
 let toastTimer;
+let statsState = "loading";
+const initialState = () => ({ card: null, offer: null, task: null, approval: null, commitContext: null, stage: "idle", busy: false, exchange: null, replay: false });
+let state = initialState();
 
-function setLanguage(next, persist = true) {
-  language = next;
-  const dictionary = copy[language];
-  document.documentElement.lang = language;
-  document.title = dictionary.pageTitle;
-  $$('[data-i18n]').forEach((element) => {
-    const key = element.dataset.i18n;
-    if (dictionary[key] !== undefined) element.innerHTML = dictionary[key];
-  });
-  $$('[data-i18n-aria]').forEach((element) => {
-    const key = element.dataset.i18nAria;
-    if (dictionary[key] !== undefined) element.setAttribute("aria-label", dictionary[key]);
-  });
-  $$('[data-lang]').forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.lang === language)));
-  if (persist) localStorage.setItem("latch-language", language);
-  renderTrace();
-  renderMetrics();
+function canonicalize(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+  return `{${Object.keys(value).sort().filter((key) => value[key] !== undefined).map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`).join(",")}}`;
 }
-
-function shortDigest(digest) {
-  return digest ? `${digest.slice(0, 19)}…${digest.slice(-8)}` : "—";
+async function digest(offer) {
+  const unsigned = { ...offer };
+  delete unsigned.digest;
+  const bytes = new TextEncoder().encode(canonicalize(unsigned));
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return `sha256-${[...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
-function renderTrace() {
-  const dictionary = copy[language];
-  const step = trace.steps[currentStep];
-  const description = dictionary.steps[currentStep];
-  $("#trace-title").textContent = description.title;
-  $("#trace-description").textContent = description.description;
-  $("#step-count").textContent = `${String(currentStep + 1).padStart(2, "0")} / ${String(trace.steps.length).padStart(2, "0")}`;
-  $("#stage-operation").textContent = step.name.toUpperCase();
-  $("#trace").dataset.phase = step.name;
-  $("#trace").dataset.direction = step.request.local ? "local" : message;
-  $("#trace").style.setProperty("--packet-distance", `${Math.max(0, $(".channel-line").clientWidth - 7)}px`);
-  $("#wire-json").textContent = JSON.stringify(step[message], null, 2);
-  $("#trace-panel").setAttribute("aria-labelledby", `tab-${currentStep}`);
-  $$('[data-step]').forEach((button) => {
-    const selected = Number(button.dataset.step) === currentStep;
-    button.setAttribute("aria-selected", String(selected));
-    button.tabIndex = selected ? 0 : -1;
-  });
-  $$('[data-message]').forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.message === message)));
-  $("#prev-step").disabled = currentStep === 0;
-  $("#next-step").disabled = currentStep === trace.steps.length - 1;
-  $("#play-trace span").textContent = playing ? dictionary.pauseText : dictionary.playText;
-  $("#play-trace").setAttribute("aria-label", playing ? dictionary.pause : dictionary.play);
-  $("#play-trace svg").innerHTML = playing ? '<path d="M4 3h3v10H4zM9 3h3v10H9z"/>' : '<path d="m5 3 8 5-8 5Z"/>';
-  $("#agent-state").textContent = step.request.local ? "LOCAL REVIEW" : (message === "request" ? "REQUEST" : "RESPONSE");
-  $("#service-state").textContent = step.request.local ? "SIMULATION" : ({ discover: "CARD", ask: "READ", quote: "OFFER", commit: "TASK", receipt: "RECEIPT" })[step.name];
-  const facts = [];
-  if (step.request.local) {
-    facts.push([dictionary.localBoundary, dictionary.noNetwork], ["Digest", shortDigest(step.request.approval.offer_digest)]);
-  } else {
-    facts.push([dictionary.transport, `${step.request.method} · ${step.request.url ? new URL(step.request.url).pathname : "HTTPS"}`]);
-    if (step.name === "quote") facts.push([dictionary.exactTerms, `${step.response.offer.terms.amount / 100} ${step.response.offer.terms.currency}`], ["Digest", shortDigest(step.response.offer.digest)]);
-    if (step.name === "commit") facts.push(["Idempotency-Key", step.request.headers["idempotency-key"]], ["Digest", shortDigest(step.request.body.offer_digest)]);
-    if (step.name === "receipt") facts.push([dictionary.evidence, dictionary.providerAssertion], [dictionary.task, step.response.task.state]);
-    if (["discover", "ask"].includes(step.name)) facts.push([dictionary.evidence, dictionary.simulation]);
-  }
-  $("#trace-fact").replaceChildren(...facts.flatMap(([term, value]) => {
-    const dt = document.createElement("dt");
-    const dd = document.createElement("dd");
-    dt.textContent = term;
-    dd.textContent = value;
-    return [dt, dd];
-  }));
-}
-function stopPlayback() {
-  playing = false;
-  clearTimeout(playTimer);
-  renderTrace();
-}
-function schedulePlayback() {
-  clearTimeout(playTimer);
-  if (!playing) return;
-  playTimer = setTimeout(() => {
-    if (currentStep === trace.steps.length - 1) {
-      stopPlayback();
-      return;
+async function readJson(response) {
+  const reader = response.body?.getReader();
+  const chunks = [];
+  let size = 0;
+  if (reader) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 262144) {
+        await reader.cancel();
+        throw new Error("Response exceeds 256 KiB");
+      }
+      chunks.push(value);
     }
-    currentStep++;
-    message = "request";
-    renderTrace();
-    schedulePlayback();
-  }, 2800);
-}
-function togglePlayback() {
-  if (playing) {
-    stopPlayback();
-    return;
   }
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    currentStep = currentStep === trace.steps.length - 1 ? 0 : currentStep + 1;
-    message = "request";
-    renderTrace();
-    return;
+  const text = new TextDecoder().decode(concat(chunks));
+  if (!response.ok) {
+    try {
+      const data = JSON.parse(text);
+      throw new Error(`${data.error?.code || "http_error"} · ${data.error?.message || response.status}`);
+    } catch (error) {
+      if (error.message.includes("·")) throw error;
+      throw new Error(`HTTP ${response.status}`);
+    }
   }
-  if (currentStep === trace.steps.length - 1) currentStep = 0;
-  playing = true;
-  renderTrace();
-  schedulePlayback();
+  return JSON.parse(text);
 }
-function selectStep(index, focus = false) {
-  stopPlayback();
-  currentStep = Math.max(0, Math.min(index, trace.steps.length - 1));
-  message = "request";
-  renderTrace();
-  if (focus) $(`#tab-${currentStep}`).focus();
+function concat(chunks) {
+  const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0));
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
 }
-
-$$('[data-lang]').forEach((button) => button.addEventListener("click", () => setLanguage(button.dataset.lang)));
-$$('[data-step]').forEach((button) => {
-  button.addEventListener("click", () => selectStep(Number(button.dataset.step)));
-  button.addEventListener("keydown", (event) => {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    if (event.key === "Home") selectStep(0, true);
-    else if (event.key === "End") selectStep(trace.steps.length - 1, true);
-    else selectStep((currentStep + (event.key === "ArrowRight" ? 1 : -1) + trace.steps.length) % trace.steps.length, true);
-  });
-});
-$$('[data-message]').forEach((button) => button.addEventListener("click", () => {
-  message = button.dataset.message;
-  renderTrace();
-}));
-$("#prev-step").addEventListener("click", () => selectStep(currentStep - 1));
-$("#next-step").addEventListener("click", () => selectStep(currentStep + 1));
-$("#play-trace").addEventListener("click", togglePlayback);
-$("#trace").addEventListener("keydown", (event) => {
-  if (event.code === "Space" && !event.target.closest("pre")) {
-    event.preventDefault();
-    togglePlayback();
-    return;
-  }
-  if (event.target.closest("button") || event.target.closest("pre")) return;
-  if (event.key === "ArrowRight") { event.preventDefault(); selectStep(currentStep + 1); }
-  if (event.key === "ArrowLeft") { event.preventDefault(); selectStep(currentStep - 1); }
-});
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden && playing) stopPlayback();
-});
-
+function exchangeDisplay() {
+  if (!state.exchange) return { note: "No request made yet" };
+  return state.exchange[message];
+}
+function render() {
+  const text = copy[language];
+  document.documentElement.lang = language;
+  document.title = text.pageTitle;
+  $$('[data-i18n]').forEach((element) => { if (text[element.dataset.i18n] !== undefined) element.innerHTML = text[element.dataset.i18n]; });
+  $$('[data-i18n-aria]').forEach((element) => { if (text[element.dataset.i18nAria] !== undefined) element.setAttribute("aria-label", text[element.dataset.i18nAria]); });
+  $$('[data-lang]').forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.lang === language)));
+  $("#discover-button").disabled = state.busy;
+  $("#quote-button").disabled = state.busy;
+  $("#approval").disabled = state.busy || !state.offer;
+  $("#commit-button").disabled = state.busy || !state.offer || !$("#approval").checked;
+  $("#receipt-button").disabled = state.busy || !state.task;
+  $("#replay-button").disabled = state.busy || !state.commitContext;
+  $("#reset-button").disabled = state.busy;
+  $$('[data-message]').forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.message === message)));
+  $("#live-json").textContent = JSON.stringify(exchangeDisplay(), null, 2);
+  $("#offer-digest").textContent = state.offer?.digest || "—";
+  $("#task-id").textContent = state.task?.id || "—";
+  $("#live-flow").dataset.stage = state.stage;
+  $("#live-flow").style.setProperty("--packet-distance", `${Math.max(0, $(".channel").clientWidth - 7)}px`);
+  $(".channel i").style.opacity = ["idle", "approve", "dirty"].includes(state.stage) ? "0" : "1";
+  const statusKey = { idle: "idle", card: "cardDone", quote: "quoteDone", approve: "approveDone", commit: "commitDone", receipt: "receiptDone", dirty: "changed", replay: "replayDone", reset: "resetDone" }[state.stage];
+  $("#live-status").textContent = state.busy ? text.loading : (state.error || text[statusKey] || text.idle);
+  $("#status-dot").className = `status-dot${state.error ? " error" : (state.card ? " connected" : "")}`;
+  $("#stats-status").textContent = text[statsState === "live" ? "statsLive" : (statsState === "error" ? "statsError" : "statsLoading")];
+  renderBench();
+}
+function setStage(stage) {
+  state.stage = stage;
+  state.error = null;
+  render();
+}
+async function execute(action) {
+  if (state.busy) return;
+  state.busy = true;
+  state.error = null;
+  render();
+  try { await action(); }
+  catch (error) { state.error = error.message; render(); }
+  finally { state.busy = false; render(); }
+}
+async function request(op, fields = {}, idempotencyKey) {
+  if (!state.card) throw new Error(copy[language].needCard);
+  const body = { latch: "0.1", id: `req_${crypto.randomUUID()}`, op, ...fields };
+  const headers = { "content-type": "application/json", accept: "application/latch+json, application/json" };
+  if (idempotencyKey) headers["idempotency-key"] = idempotencyKey;
+  const response = await fetch(state.card.endpoint, { method: "POST", headers, body: JSON.stringify(body), redirect: "error", signal: AbortSignal.timeout(15000) });
+  const data = await readJson(response);
+  state.exchange = { request: { method: "POST", url: state.card.endpoint, headers, body }, response: data };
+  if (data.latch !== "0.1" || data.id !== body.id || data.ok !== true) throw new Error("Invalid provider response envelope");
+  return data;
+}
+async function discover() {
+  const cardUrl = $("#card-url").value.trim() || CARD_URL;
+  const parsedCardUrl = new URL(cardUrl);
+  if (parsedCardUrl.protocol !== "https:" && !(parsedCardUrl.protocol === "http:" && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(parsedCardUrl.hostname))) throw new Error("HTTPS is required outside loopback");
+  const response = await fetch(cardUrl, { redirect: "error", signal: AbortSignal.timeout(15000) });
+  const card = await readJson(response);
+  const endpoint = new URL(card.endpoint);
+  const loopback = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(endpoint.hostname);
+  if (card.latch !== "0.1" || endpoint.origin !== parsedCardUrl.origin || !["https:", "http:"].includes(endpoint.protocol) || (endpoint.protocol === "http:" && !loopback) || !Array.isArray(card.capabilities)) throw new Error("Invalid or unsafe LATCH card");
+  state.card = card;
+  state.exchange = { request: { method: "GET", url: cardUrl }, response: card };
+  setStage("card");
+}
+async function quote() {
+  if (!$("#order-form").reportValidity()) return;
+  if (!state.card) throw new Error(copy[language].needCard);
+  const input = {
+    model_url: $("#model-url").value.trim(), material: $("#material").value,
+    quantity: Number($("#quantity").value),
+    delivery: { country: $("#country").value.trim(), postal_code: $("#postal-code").value.trim() }
+  };
+  const data = await request("quote", { capability: "print3d.order", input });
+  if (await digest(data.offer) !== data.offer.digest) throw new Error("Provider offer digest does not match");
+  state.offer = data.offer;
+  state.task = null;
+  state.approval = null;
+  state.commitContext = null;
+  state.replay = false;
+  $("#approval").checked = false;
+  setStage("quote");
+}
+async function commit(replay = false) {
+  if (!state.offer || !$("#approval").checked) throw new Error(copy[language].needApproval);
+  if (await digest(state.offer) !== state.offer.digest) throw new Error("The offer changed; request a new quote");
+  const context = state.commitContext || {
+    offer: state.offer,
+    approval: { decision: "approve", offer_digest: state.offer.digest, method: "browser-checkbox", at: new Date().toISOString() },
+    key: crypto.randomUUID()
+  };
+  state.commitContext = context;
+  const data = await request("commit", { offer: context.offer.id, offer_digest: context.offer.digest, approval: context.approval }, context.key);
+  if (replay && data.task.id !== state.task.id) throw new Error("Replay returned a different task");
+  state.task = data.task;
+  setStage(replay ? "replay" : "commit");
+}
+async function receipt() {
+  const data = await request("status", { task: state.task.id });
+  state.task = data.task;
+  setStage("receipt");
+}
+function reset() {
+  const card = state.card;
+  state = initialState();
+  state.card = card;
+  $("#order-form").reset();
+  $("#approval").checked = false;
+  setStage(card ? "reset" : "idle");
+}
 function toast(text) {
   clearTimeout(toastTimer);
   $("#toast").textContent = text;
   $("#toast").classList.add("visible");
-  toastTimer = setTimeout(() => $("#toast").classList.remove("visible"), 2600);
+  toastTimer = setTimeout(() => $("#toast").classList.remove("visible"), 2400);
 }
+function renderExample() {
+  $("#example-label").textContent = examples[example].label;
+  $("#example-code").textContent = examples[example].code;
+  $("#code-panel").setAttribute("aria-labelledby", `tab-${example}`);
+  $$('[data-example]').forEach((button) => {
+    const selected = button.dataset.example === example;
+    button.setAttribute("aria-selected", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+}
+function decimal(value) { return value.toFixed(2).replace(".", language === "ru" ? "," : "."); }
+function renderBench() {
+  $("#source-size").textContent = new Intl.NumberFormat(language).format(metrics.intrinsic.implementation_bytes);
+  for (const name of ["raw", "latch", "mcp"]) {
+    const result = comparison.results[name];
+    if (!result) continue;
+    if (result.first_contact) $(`#${name}-contact`).textContent = `${decimal(result.first_contact.median_ms)} ms`;
+    $(`#${name}-read`).textContent = `${decimal(result.warm_read.median_ms)} ms`;
+    $(`#${name}-large`).textContent = `${decimal(result.payload_16k.median_ms)} ms`;
+    $(`#${name}-parallel`).textContent = `${decimal(result.concurrent.p95_ms)} ms`;
+    $(`#${name}-cold`).textContent = `${decimal(result.cold_process.median_ms)} ms`;
+  }
+  $("#bench-environment").textContent = `${comparison.environment.node} · ${comparison.environment.os}`;
+  $("#bench-date").textContent = new Intl.DateTimeFormat(language === "ru" ? "ru-RU" : "en-GB", { dateStyle: "medium" }).format(new Date(comparison.timestamp));
+}
+async function loadStats() {
+  try {
+    const response = await fetch("https://api.github.com/repos/Balanov/latch", { signal: AbortSignal.timeout(7000) });
+    if (!response.ok) throw new Error("GitHub unavailable");
+    const data = await response.json();
+    $("#stars-value").textContent = new Intl.NumberFormat(language).format(data.stargazers_count);
+    $("#forks-value").textContent = new Intl.NumberFormat(language).format(data.forks_count);
+    statsState = "live";
+  } catch { statsState = "error"; }
+  render();
+}
+
+$("#discover-button").addEventListener("click", () => execute(discover));
+$("#order-form").addEventListener("submit", (event) => { event.preventDefault(); execute(quote); });
+$("#approval").addEventListener("change", () => setStage($("#approval").checked ? "approve" : "quote"));
+$("#order-form").addEventListener("input", (event) => {
+  if (event.target.id === "approval") return;
+  if (event.target.id === "card-url") state.card = null;
+  state.offer = null;
+  state.task = null;
+  state.approval = null;
+  state.commitContext = null;
+  $("#approval").checked = false;
+  setStage(event.target.id === "card-url" ? "idle" : "dirty");
+});
+$("#commit-button").addEventListener("click", () => execute(() => commit(false)));
+$("#receipt-button").addEventListener("click", () => execute(receipt));
+$("#replay-button").addEventListener("click", () => execute(() => commit(true)));
+$("#reset-button").addEventListener("click", reset);
+$$('[data-lang]').forEach((button) => button.addEventListener("click", () => {
+  language = button.dataset.lang;
+  localStorage.setItem("latch-language", language);
+  render();
+}));
+$$('[data-message]').forEach((button) => button.addEventListener("click", () => { message = button.dataset.message; render(); }));
+$$('[data-example]').forEach((button) => {
+  button.addEventListener("click", () => { example = button.dataset.example; renderExample(); });
+  button.addEventListener("keydown", (event) => {
+    const names = Object.keys(examples);
+    let index = names.indexOf(example);
+    if (event.key === "ArrowRight") index = (index + 1) % names.length;
+    else if (event.key === "ArrowLeft") index = (index - 1 + names.length) % names.length;
+    else if (event.key === "Home") index = 0;
+    else if (event.key === "End") index = names.length - 1;
+    else return;
+    event.preventDefault();
+    example = names[index];
+    renderExample();
+    $(`#tab-${example}`).focus();
+  });
+});
 $$('[data-copy-target]').forEach((button) => button.addEventListener("click", async () => {
   const source = document.getElementById(button.dataset.copyTarget);
-  const text = source.textContent;
   try {
-    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-    else {
-      const area = document.createElement("textarea");
-      area.value = text;
-      area.style.position = "fixed";
-      area.style.opacity = "0";
-      document.body.append(area);
-      area.select();
-      const succeeded = document.execCommand("copy");
-      area.remove();
-      if (!succeeded) throw new Error("Copy command returned false");
-    }
+    await navigator.clipboard.writeText(source.textContent);
     toast(copy[language].copied);
   } catch {
-    toast(copy[language].copyError);
-    const selection = window.getSelection();
     const range = document.createRange();
     range.selectNodeContents(source);
+    const selection = getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
+    toast(copy[language].copyError);
   }
 }));
 
-function decimal(value) {
-  return value.toFixed(2).replace(".", language === "ru" ? "," : ".");
-}
-function renderMetrics() {
-  const integer = new Intl.NumberFormat(language === "ru" ? "ru-RU" : "en-US");
-  $("#source-size").textContent = integer.format(metrics.intrinsic.implementation_bytes);
-  $("#cold-value").textContent = decimal(metrics.cold_start.median_ms);
-  $("#flow-value").textContent = decimal(metrics.full_flow.median_ms);
-  $("#cold-note").textContent = `median · n=${metrics.cold_start.samples}`;
-  $("#flow-note").textContent = `median · n=${metrics.full_flow.samples}`;
-  for (const operation of ["ask", "quote", "commit", "status"]) {
-    $(`#${operation}-median`).textContent = `${decimal(metrics.operations[operation].median_ms)} ms`;
-    $(`#${operation}-p95`).textContent = `${decimal(metrics.operations[operation].p95_ms)} ms`;
-  }
-  $("#bench-environment").textContent = `${metrics.environment.node} · ${metrics.environment.platform} · ${metrics.environment.architecture}`;
-  $("#bench-date").textContent = new Intl.DateTimeFormat(language === "ru" ? "ru-RU" : "en-GB", { dateStyle: "medium" }).format(new Date(metrics.timestamp));
-}
-
-async function loadGithubStats() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7000);
-  try {
-    const response = await fetch("https://api.github.com/repos/Balanov/latch", {
-      headers: { accept: "application/vnd.github+json" }, signal: controller.signal
-    });
-    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
-    const data = await response.json();
-    if (!Number.isFinite(data.stargazers_count) || !Number.isFinite(data.forks_count)) throw new Error("Missing counters");
-    $("#stars-value").textContent = new Intl.NumberFormat(language).format(data.stargazers_count);
-    $("#forks-value").textContent = new Intl.NumberFormat(language).format(data.forks_count);
-    $("#stars-link").title = `${data.stargazers_count} GitHub stars`;
-    $("#forks-link").title = `${data.forks_count} GitHub forks`;
-    $("#stats-status").textContent = copy[language].statsLive;
-  } catch {
-    $("#stars-value").textContent = "—";
-    $("#forks-value").textContent = "—";
-    $("#stats-status").textContent = copy[language].statsError;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-setLanguage(language, false);
-loadGithubStats();
+$("#card-url").value = new URLSearchParams(location.search).get("provider") || CARD_URL;
+render();
+renderExample();
+loadStats();

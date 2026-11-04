@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import http from "node:http";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, open, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import readline from "node:readline";
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.2.0";
 export const PROTOCOL = "0.1";
 export const SPEC_URL = "https://github.com/Balanov/latch/blob/main/SPEC.md";
 export const REPOSITORY_URL = "https://github.com/Balanov/latch";
@@ -205,14 +205,123 @@ async function readJsonBody(request, limit) {
   }
 }
 
+export function createFileStore(filename) {
+  const root = path.resolve(filename);
+  const lockPath = `${root}.lock`;
+  let data = new Map();
+  let lockHandle;
+  let loaded = false;
+  let tail = Promise.resolve();
+
+  const release = async () => {
+    if (!lockHandle) return;
+    await lockHandle.close();
+    lockHandle = undefined;
+    await unlink(lockPath).catch((error) => {
+      if (error.code !== "ENOENT") throw error;
+    });
+  };
+  const init = async () => {
+    if (loaded) return;
+    await mkdir(path.dirname(root), { recursive: true, mode: 0o700 });
+    try {
+      lockHandle = await open(lockPath, "wx", 0o600);
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      let owner;
+      try {
+        owner = JSON.parse(await readFile(lockPath, "utf8"));
+      } catch {
+        fail("store_in_use", "The store lock is unreadable; inspect it before removal.", 409);
+      }
+      let alive = true;
+      try {
+        process.kill(owner.pid, 0);
+      } catch (check) {
+        if (check.code === "ESRCH") alive = false;
+      }
+      if (alive) fail("store_in_use", "Another process is using this store.", 409);
+      await unlink(lockPath);
+      lockHandle = await open(lockPath, "wx", 0o600);
+    }
+    try {
+      await lockHandle.writeFile(JSON.stringify({ pid: process.pid, created_at: now() }));
+      try {
+        data = new Map(JSON.parse(await readFile(root, "utf8")));
+      } catch (error) {
+        if (error.code === "ENOENT") data = new Map();
+        else fail("store_corrupt", "The store is not valid JSON; it was not modified.", 500);
+      }
+      loaded = true;
+    } catch (error) {
+      await release();
+      throw error;
+    }
+  };
+  const operation = (callback) => {
+    const run = tail.then(async () => {
+      await init();
+      return callback();
+    });
+    tail = run.catch(() => {});
+    return run;
+  };
+  const persist = async () => {
+    const temporary = `${root}.${process.pid}.${randomUUID()}.tmp`;
+    const handle = await open(temporary, "wx", 0o600);
+    try {
+      await handle.writeFile(JSON.stringify([...data]));
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await rename(temporary, root);
+  };
+  return {
+    get(key) { return operation(() => clone(data.get(key))); },
+    set(key, value) {
+      return operation(async () => {
+        data.set(key, clone(value));
+        await persist();
+      });
+    },
+    async close() {
+      await tail;
+      await release();
+      loaded = false;
+      data = new Map();
+    }
+  };
+}
+
 export function createLatchServer(card, handlers = {}, options = {}) {
   validateCard(card);
+  if (options.store && (typeof options.store.get !== "function" || typeof options.store.set !== "function")) {
+    throw new TypeError("A store must provide async get(key) and set(key, value) methods.");
+  }
   const offers = new Map();
   const tasks = new Map();
   const idempotency = new Map();
   const pending = new Map();
   const limit = options.bodyLimit || JSON_LIMIT;
   const clock = options.clock || Date;
+  const memory = { offer: offers, task: tasks, idempotency };
+  const storageKey = (kind, id, principal) => JSON.stringify([principal, kind, id]);
+  const get = (kind, id, principal) => options.store
+    ? options.store.get(storageKey(kind, id, principal))
+    : memory[kind].get(storageKey(kind, id, principal));
+  const set = (kind, id, value, principal) => options.store
+    ? options.store.set(storageKey(kind, id, principal), value)
+    : memory[kind].set(storageKey(kind, id, principal), value);
+  const authenticate = async (request) => {
+    if (!options.authenticate) return "public";
+    const identity = await options.authenticate(request);
+    const principal = typeof identity === "string" ? identity : identity?.id;
+    if (typeof principal !== "string" || !principal || principal.length > 200) {
+      fail("unauthenticated", "A valid caller identity is required.", 401);
+    }
+    return principal;
+  };
 
   const receiptFor = (task) => ({
     id: newId("rcpt"),
@@ -231,8 +340,8 @@ export function createLatchServer(card, handlers = {}, options = {}) {
     ...extra
   });
 
-  const executeCommit = async (request, key, fingerprint) => {
-    const stored = offers.get(request.offer);
+  const executeCommit = async (request, key, fingerprint, principal) => {
+    const stored = await get("offer", request.offer, principal);
     if (!stored) fail("offer_not_found", "The offer does not exist.", 404);
     const unsigned = publicOffer(stored);
     delete unsigned.digest;
@@ -272,11 +381,11 @@ export function createLatchServer(card, handlers = {}, options = {}) {
     };
     let receipt = output.receipt;
     if (state === "succeeded" && !receipt) receipt = receiptFor(task);
-    tasks.set(taskId, { ...task, _receipt: receipt });
+    await set("task", taskId, { ...task, _receipt: receipt }, principal);
     return respond(request, state, { task: publicTask(task), ...(receipt ? { receipt } : {}) });
   };
 
-  const process = async (request, headers) => {
+  const process = async (request, headers, principal) => {
     if (!request || typeof request !== "object" || Array.isArray(request)) fail("invalid_request", "Request must be an object.");
     if (request.latch !== PROTOCOL) fail("version_unsupported", `Only LATCH ${PROTOCOL} is supported.`, 422);
     if (typeof request.id !== "string" || !request.id || request.id.length > 200) fail("invalid_request", "A bounded request id is required.");
@@ -308,7 +417,7 @@ export function createLatchServer(card, handlers = {}, options = {}) {
         expires_at: quoted.expires_at || new clock(new clock().getTime() + (quoted.expires_in || 300) * 1000).toISOString()
       };
       offer.digest = sha256(offer);
-      offers.set(offer.id, { ...offer, input: clone(request.input), data: clone(quoted.data) });
+      await set("offer", offer.id, { ...offer, input: clone(request.input), data: clone(quoted.data) }, principal);
       return respond(request, "offered", { offer: publicOffer(offer) });
     }
 
@@ -319,28 +428,29 @@ export function createLatchServer(card, handlers = {}, options = {}) {
       }
       const fingerprint = commitFingerprint(request);
       const replay = (response) => ({ ...clone(response), id: request.id });
-      const completed = idempotency.get(key);
+      const pendingKey = `${principal}:${key}`;
+      const completed = await get("idempotency", key, principal);
       if (completed) {
         if (completed.fingerprint !== fingerprint) fail("idempotency_conflict", "The idempotency key was used with different content.", 409);
         return replay(completed.response);
       }
-      const running = pending.get(key);
+      const running = pending.get(pendingKey);
       if (running) {
         if (running.fingerprint !== fingerprint) fail("idempotency_conflict", "The idempotency key was used with different content.", 409);
         return replay(await running.promise);
       }
-      const promise = executeCommit(request, key, fingerprint);
-      pending.set(key, { fingerprint, promise });
+      const promise = executeCommit(request, key, fingerprint, principal);
+      pending.set(pendingKey, { fingerprint, promise });
       try {
         const response = await promise;
-        idempotency.set(key, { fingerprint, response: clone(response) });
+        await set("idempotency", key, { fingerprint, response: clone(response) }, principal);
         return response;
       } finally {
-        pending.delete(key);
+        pending.delete(pendingKey);
       }
     }
 
-    const current = tasks.get(request.task);
+    const current = await get("task", request.task, principal);
     if (!current) fail("task_not_found", "The task does not exist.", 404);
     if (request.op === "status") {
       const update = typeof handlers.status === "function"
@@ -348,6 +458,7 @@ export function createLatchServer(card, handlers = {}, options = {}) {
         : {};
       if (update) Object.assign(current, clone(update));
       if (current.state === "succeeded" && !current._receipt) current._receipt = receiptFor(current);
+      await set("task", current.id, current, principal);
       return respond(request, current.state, { task: publicTask(current), ...(current._receipt ? { receipt: current._receipt } : {}) });
     }
     if (TERMINAL.has(current.state)) fail("task_not_cancellable", "A terminal task cannot be cancelled.", 409);
@@ -358,6 +469,7 @@ export function createLatchServer(card, handlers = {}, options = {}) {
     } else {
       current.state = "cancelled";
     }
+    await set("task", current.id, current, principal);
     return respond(request, "cancelled", { task: publicTask(current) });
   };
 
@@ -382,9 +494,10 @@ export function createLatchServer(card, handlers = {}, options = {}) {
     }
     let correlationId;
     try {
+      const principal = await authenticate(request);
       const body = await readJsonBody(request, limit);
       correlationId = body?.id;
-      const result = await process(body, request.headers);
+      const result = await process(body, request.headers, principal);
       response.writeHead(200, { "content-type": "application/latch+json; charset=utf-8", "x-content-type-options": "nosniff" });
       response.end(JSON.stringify(result));
     } catch (error) {
@@ -406,7 +519,7 @@ export function createLatchServer(card, handlers = {}, options = {}) {
     }
   });
   server.card = card;
-  server.latch = { offers, tasks, idempotency };
+  server.latch = { offers, tasks, idempotency, store: options.store || null, close: () => options.store?.close?.() };
   return server;
 }
 
@@ -439,20 +552,47 @@ function assertFetchUrl(value, allowLoopback = true) {
 
 async function fetchJson(url, options = {}) {
   assertFetchUrl(url);
-  const response = await fetch(url, {
-    method: options.method || "GET",
-    headers: {
-      accept: "application/latch+json, application/json",
-      ...(options.body ? { "content-type": "application/json" } : {}),
-      ...(options.headers || {})
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    redirect: "manual",
-    signal: AbortSignal.timeout(options.timeout || 10_000)
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method: options.method || "GET",
+      headers: {
+        accept: "application/latch+json, application/json",
+        ...(options.body ? { "content-type": "application/json" } : {}),
+        ...(options.headers || {})
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      redirect: "manual",
+      signal: AbortSignal.timeout(options.timeout || 10_000)
+    });
+  } catch (error) {
+    if (["TimeoutError", "AbortError"].includes(error.name)) {
+      fail("timeout", "The provider did not respond before the deadline.", 504, { retryable: true });
+    }
+    fail("network_error", "The provider could not be reached.", 502, { retryable: true });
+  }
   if (response.status >= 300 && response.status < 400) fail("redirect_rejected", "Redirects are not followed automatically.");
-  const text = await response.text();
-  if (Buffer.byteLength(text) > (options.maxBytes || JSON_LIMIT)) fail("response_too_large", "The JSON response is too large.", 413);
+  const chunks = [];
+  let size = 0;
+  const limit = options.maxBytes || JSON_LIMIT;
+  if (response.body) {
+    const reader = response.body.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > limit) {
+          await reader.cancel().catch(() => {});
+          fail("response_too_large", "The JSON response is too large.", 413);
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  const text = Buffer.concat(chunks).toString("utf8");
   let data;
   try {
     data = JSON.parse(text);
@@ -489,8 +629,11 @@ export class LatchClient {
     }
     const cardUrl = new URL(this.service);
     const endpoint = new URL(this.card.endpoint);
-    if (!this.options.allowCrossOrigin && cardUrl.origin !== endpoint.origin) {
-      fail("cross_origin_endpoint", "The card endpoint must be same-origin.", 403);
+    if (cardUrl.origin !== endpoint.origin) {
+      if (!this.options.allowCrossOrigin) fail("cross_origin_endpoint", "The card endpoint must be same-origin.", 403);
+      if (Object.keys(this.options.headers || {}).length && !this.options.allowCrossOriginHeaders) {
+        fail("cross_origin_headers", "Custom headers require a separate cross-origin policy opt-in.", 403);
+      }
     }
     assertFetchUrl(endpoint.href);
     this.endpoint = endpoint.href;
@@ -502,7 +645,12 @@ export class LatchClient {
     const request = { latch: PROTOCOL, id: newId("req"), op, ...fields };
     const headers = { ...(options.idempotencyKey ? { "idempotency-key": options.idempotencyKey } : {}) };
     this.options.onRequest?.({ request: clone(request), headers: { ...headers } });
-    const data = await fetchJson(this.endpoint, { ...this.options, method: "POST", body: request, headers });
+    const data = await fetchJson(this.endpoint, {
+      ...this.options,
+      method: "POST",
+      body: request,
+      headers: { ...(this.options.headers || {}), ...headers }
+    });
     if (data.latch !== PROTOCOL || data.id !== request.id || data.ok !== true) {
       fail("invalid_provider_response", "The response envelope is invalid.", 502, { payload: data });
     }
@@ -539,7 +687,7 @@ export async function discover(service, options = {}) {
   return client.card;
 }
 
-export function createDemoProvider() {
+export function createDemoProvider(options = {}) {
   const card = {
     latch: PROTOCOL,
     name: "LATCH Print Lab (simulation)",
@@ -621,7 +769,7 @@ export function createDemoProvider() {
       };
     }
   };
-  return createLatchServer(card, handlers);
+  return createLatchServer(card, handlers, options);
 }
 
 export async function startDemo(options = {}) {

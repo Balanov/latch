@@ -7,4 +7,5 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(new URL("./src/", dist), { recursive: true });
 await cp(new URL("./src/", root), new URL("./src/", dist), { recursive: true });
 await cp(new URL("./index.html", root), new URL("./index.html", dist));
-console.log("Static site ready: app/dist/");
+await cp(new URL("../providers/php/", root), new URL("./api/", dist), { recursive: true });
+console.log("Static client and independent PHP provider ready: app/dist/");

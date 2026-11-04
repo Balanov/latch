@@ -18,6 +18,8 @@ LATCH moves consequential decisions into explicit, testable transitions. It does
 - TLS authenticates an origin under the Web PKI, not business honesty or service quality.
 - A provider receipt is a provider assertion, not independent evidence of payment, manufacture, delivery, or another physical effect.
 - In-memory offers, tasks, and idempotency records are for development. Production needs durable, atomic, caller-scoped storage.
+- `createFileStore` is optional and single-writer. It protects restart/replay state and rejects a second writer or corrupt file, but does not provide distributed transactions, encryption, retention, or exactly-once external effects.
+- `authenticate` scopes storage by the returned principal ID. The application must still verify identity and authorization correctly; an ID string itself is not proof of identity.
 - The reference JSON Schema validator implements a subset. Providers must enforce their full published schema.
 - The MCP bridge exposes powerful remote calls to its host. Host policy and confirmation remain necessary.
 

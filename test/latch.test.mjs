@@ -11,6 +11,7 @@ import {
   LatchClient,
   canonicalize,
   createLatchServer,
+  createFileStore,
   createDemoProvider,
   discover,
   listen,
@@ -371,6 +372,159 @@ test("demo provider always declares its simulated effects", async (t) => {
   const result = await client.commit(offer, { decision: "approve", offer_digest: offer.digest }, "simulation-key-0000000001");
   assert.equal(result.task.result.status, "recorded_simulation");
   assert.match(result.task.result.note, /No object was printed/);
+});
+
+test("authenticated callers cannot access each other's offers or tasks", async (t) => {
+  const server = createDemoProvider({
+    authenticate(request) {
+      return { "Bearer alice": "alice", "Bearer bob": "bob" }[request.headers.authorization] || null;
+    }
+  });
+  const { origin } = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const card = await discover(origin);
+  assert.equal(card.latch, "0.1", "The public card remains discoverable");
+  await rejectsCode(new LatchClient(origin).ask("materials.list"), "unauthenticated", 401);
+  const alice = new LatchClient(origin, { headers: { authorization: "Bearer alice" } });
+  const bob = new LatchClient(origin, { headers: { authorization: "Bearer bob" } });
+  const input = { model_url: "https://example.com/model.stl", material: "pla", quantity: 1, delivery: { country: "NL", postal_code: "1011" } };
+  const [first, second] = await Promise.all([alice.quote("print3d.order", input), bob.quote("print3d.order", input)]);
+  const sharedKey = "shared-key-different-callers";
+  const [a, b] = await Promise.all([
+    alice.commit(first.offer, { decision: "approve", offer_digest: first.offer.digest }, sharedKey),
+    bob.commit(second.offer, { decision: "approve", offer_digest: second.offer.digest }, sharedKey)
+  ]);
+  assert.notEqual(a.task.id, b.task.id);
+  await rejectsCode(alice.status(b.task.id), "task_not_found", 404);
+  await rejectsCode(bob.commit(first.offer, { decision: "approve", offer_digest: first.offer.digest }, "cross-caller-offer-key"), "offer_not_found", 404);
+  assert.equal((await alice.status(a.task.id)).receipt.evidence, "provider_assertion");
+});
+
+test("cross-origin custom headers require a second explicit opt-in", async () => {
+  const card = {
+    latch: "0.1", name: "Remote", description: "Credential boundary fixture", endpoint: "https://elsewhere.example/latch",
+    capabilities: [{ id: "read", description: "Read", mode: "read", input: { type: "object" }, effects: "none", approval: "never" }]
+  };
+  const options = { card, allowCrossOrigin: true, headers: { authorization: "Bearer test" } };
+  await rejectsCode(new LatchClient("https://service.example", options).connect(), "cross_origin_headers", 403);
+  const allowed = new LatchClient("https://service.example", { ...options, allowCrossOriginHeaders: true });
+  await allowed.connect();
+  assert.equal(allowed.endpoint, card.endpoint);
+});
+
+test("response size is bounded while streaming, not only after buffering", async (t) => {
+  const server = http.createServer((request, response) => {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ latch: "0.1", padding: "x".repeat(8192) }));
+  });
+  const { origin } = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  await rejectsCode(discover(origin, { maxBytes: 64 }), "response_too_large", 413);
+});
+
+test("a provider deadline produces a structured retryable timeout", async (t) => {
+  const template = createDemoProvider();
+  const server = createLatchServer(template.card, {
+    async ask() {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return { late: true };
+    }
+  });
+  const { origin } = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const client = new LatchClient(origin, { card: server.card, timeout: 20 });
+  await rejectsCode(client.ask("materials.list"), "timeout", 504);
+});
+
+test("malformed JSON, wrong media type, and oversized request bodies are rejected", async (t) => {
+  const server = createDemoProvider({ bodyLimit: 128 });
+  const { origin } = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const send = (body, type) => fetch(server.card.endpoint, { method: "POST", headers: { "content-type": type }, body });
+  assert.equal((await send("{", "application/json")).status, 400);
+  assert.equal((await send("{}", "text/plain")).status, 415);
+  assert.equal((await send(JSON.stringify({ data: "x".repeat(256) }), "application/json")).status, 413);
+});
+
+test("file storage survives restart and a failed second writer cannot steal its lock", async (t) => {
+  await mkdir(TEMP, { recursive: true });
+  const directory = await mkdtemp(path.join(TEMP, "restart-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filename = path.join(directory, "store.json");
+  const input = { model_url: "https://example.com/model.stl", material: "pla", quantity: 1, delivery: { country: "NL", postal_code: "1011" } };
+  const store = createFileStore(filename);
+  const firstServer = createDemoProvider({ store });
+  const { origin } = await listen(firstServer);
+  const client = new LatchClient(origin);
+  const { offer } = await client.quote("print3d.order", input);
+  const approval = { decision: "approve", offer_digest: offer.digest };
+  const committed = await client.commit(offer, approval, "restart-idempotency-key-001");
+  const competing = createFileStore(filename);
+  await rejectsCode(competing.get("anything"), "store_in_use", 409);
+  await competing.close();
+  assert.equal((await client.status(committed.task.id)).task.id, committed.task.id, "The active lock is still intact");
+  await new Promise((resolve) => firstServer.close(resolve));
+  await firstServer.latch.close();
+
+  const reopenedStore = createFileStore(filename);
+  const reopened = createDemoProvider({ store: reopenedStore });
+  const secondAddress = await listen(reopened);
+  t.after(async () => {
+    await new Promise((resolve) => reopened.close(resolve));
+    await reopened.latch.close();
+  });
+  const restarted = new LatchClient(secondAddress.origin);
+  const replayed = await restarted.commit(offer, approval, "restart-idempotency-key-001");
+  assert.equal(replayed.task.id, committed.task.id);
+  assert.equal(replayed.task.result.order_id, committed.task.result.order_id);
+  assert.deepEqual(replayed.receipt, committed.receipt);
+  assert.notEqual(replayed.id, committed.id);
+});
+
+test("a corrupt store fails closed and is not overwritten", async (t) => {
+  await mkdir(TEMP, { recursive: true });
+  const directory = await mkdtemp(path.join(TEMP, "corrupt-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filename = path.join(directory, "store.json");
+  await import("node:fs/promises").then(({ writeFile }) => writeFile(filename, "{broken"));
+  const store = createFileStore(filename);
+  await rejectsCode(store.get("anything"), "store_corrupt", 500);
+  await store.close();
+  assert.equal(await readFile(filename, "utf8"), "{broken");
+});
+
+test("one store serializes concurrent writes without losing entries", async (t) => {
+  await mkdir(TEMP, { recursive: true });
+  const directory = await mkdtemp(path.join(TEMP, "writes-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filename = path.join(directory, "store.json");
+  const store = createFileStore(filename);
+  t.after(() => store.close());
+  await Promise.all(Array.from({ length: 40 }, (_, index) => store.set(`key-${index}`, { index })));
+  const entries = JSON.parse(await readFile(filename, "utf8"));
+  assert.equal(entries.length, 40);
+  assert.deepEqual(await store.get("key-39"), { index: 39 });
+});
+
+test("fifty concurrent identical commits create exactly one task and invalid inputs never reach commit", async (t) => {
+  const server = createDemoProvider();
+  const { origin } = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const client = new LatchClient(origin);
+  const { offer } = await client.quote("print3d.order", {
+    model_url: "https://example.com/model.stl", material: "pla", quantity: 1,
+    delivery: { country: "NL", postal_code: "1011" }
+  });
+  const results = await Promise.all(Array.from({ length: 50 }, () => client.commit(offer, { decision: "approve", offer_digest: offer.digest }, "fifty-concurrent-commits-key")));
+  assert.equal(server.latch.tasks.size, 1);
+  assert.equal(new Set(results.map((result) => result.task.id)).size, 1);
+  for (const quantity of [0, -1, 1.5, "2", null, 101]) {
+    await rejectsCode(client.quote("print3d.order", {
+      model_url: "https://example.com/model.stl", material: "pla", quantity,
+      delivery: { country: "NL", postal_code: "1011" }
+    }), "invalid_input", 422);
+  }
+  assert.equal(server.latch.tasks.size, 1);
 });
 
 test.after(async () => {

@@ -5,8 +5,8 @@ authors:
   - family-names: Balanov
     given-names: Anton
 year: 2026
-version: 0.1.0
+version: 0.2.0
 license: MIT
 repository-code: https://github.com/Balanov/latch
-url: https://latch.kimi.page/
+url: https://balanov.pro/latch/
 type: software

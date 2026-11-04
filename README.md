@@ -1,45 +1,28 @@
 # LATCH
 
-**Any agent. Any service. One small HTTPS contract.**
+JSON/HTTPS contract between an agent and a service. One card, one POST endpoint, five operations. No SDK required.
 
-**[Project page](https://latch.kimi.page/) · [Specification](SPEC.md) · [MIT license](LICENSE)**
+**[Live Node ↔ PHP demo](https://balanov.pro/latch/) · [Specification](SPEC.md) · [MIT license](LICENSE)**
 
-LATCH lets an HTTP-capable agent discover a service, read a capability, obtain an exact quote, commit only the approved offer, and retrieve a task receipt. One well-known JSON card. One POST endpoint. Five operations. No SDK required.
-
-[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-176b4d)](LICENSE)
-
-> **Experimental 0.1.** The wire contract and reference implementation work locally and have conformance tests. The in-memory server is not a production identity, persistence, or authorization layer. The included print provider is a simulation; nothing is paid for, manufactured, or shipped.
-
-## The smallest useful boundary
-
-Existing agent protocols already solve important problems. MCP provides a rich host/tool ecosystem; A2A delegates autonomous tasks; OpenAPI and Arazzo describe APIs and workflows; UCP/ACP/AP2 cover commerce and payments. LATCH does not replace them. It is a minimal first-contact and commitment contract for agents that did not arrive with a provider-specific integration.
+LATCH does not replace MCP, A2A, OpenAPI, UCP/ACP/AP2, identity, or payment systems. It provides a small boundary:
 
 ```text
-agent                        service
-  │                            │
-  ├─ GET /.well-known/latch.json┤
-  ├─ ask ──────────────────────►│ read; no consequential effect
-  ├─ quote ────────────────────►│ prepare; do not execute
-  │◄──────── exact offer+digest │
-  │                            │
-  ├─ [local approval boundary]  │
-  │                            │
-  ├─ commit + digest ──────────►│ execute once per idempotency key
-  │      Idempotency-Key        │
-  ├─ status ───────────────────►│ task + provider_assertion receipt
+GET /.well-known/latch.json
+ask     → read without consequential effects
+quote   → exact offer + SHA-256 digest; no execution
+approve → local trusted-host/user decision bound to that digest
+commit  → offer digest + approval + Idempotency-Key
+status  → task + provider_assertion receipt
 ```
 
-- **Universal transport:** ordinary JSON over HTTPS, not a required runtime.
-- **Explicit effects:** reads never require a quote; consequential writes require one.
-- **Exact commitment:** SHA-256 canonical offer digest and an approval bound to it.
-- **Safe retries:** a required `Idempotency-Key`, including in-flight request deduplication.
-- **No middleman:** no registry, account, token, telemetry, hosted proxy, or usage fee.
-- **Adaptable:** use HTTP directly, the one-file Node CLI, or the optional MCP stdio bridge.
+- Node.js 20+ reference client/server/CLI, one ESM file, zero runtime dependencies.
+- Optional single-writer persistent store and caller-scoped authentication.
+- Optional MCP stdio bridge. HTTP alone is enough for other agents and languages.
+- No registry, account, telemetry, hosted proxy, automatic installer, or payment rail.
 
-## Run the proof
+> **Experimental wire version 0.1; implementation 0.2.0.** Demo orders are simulations: nothing is paid for, manufactured, or delivered.
 
-Requires Node.js 20 or newer. There are no runtime dependencies.
+## Run
 
 ```sh
 git clone https://github.com/Balanov/latch.git
@@ -48,9 +31,9 @@ npm test
 node latch.mjs demo --trace examples/trace.json
 ```
 
-The trace contains six actual local steps: discovery, ask, quote, local approval, commit, and receipt. Request envelopes, IDs, and HTTP headers are recorded from the running client and server. The provider and outcome are explicitly simulated.
+The trace records actual local discovery, ask, quote, approval, commit, and receipt messages, including full IDs and HTTP headers.
 
-Start the demo provider and talk to it from another terminal:
+Start the provider and use another terminal:
 
 ```sh
 node latch.mjs demo --port 8787
@@ -63,7 +46,7 @@ node latch.mjs quote http://127.0.0.1:8787 print3d.order \
   '{"model_url":"https://example.com/model.stl","material":"pla","quantity":1,"delivery":{"country":"NL","postal_code":"1011"}}'
 ```
 
-Review the returned summary, terms, expiry, origin, and digest. Then repeat the **exact** digest after `--yes`; a different value aborts before connecting:
+Review the terms, origin, expiry, and digest. Repeat the **exact** digest after `--yes`; a mismatch aborts before a connection:
 
 ```sh
 node latch.mjs commit http://127.0.0.1:8787 off_YOUR_OFFER \
@@ -72,11 +55,9 @@ node latch.mjs commit http://127.0.0.1:8787 off_YOUR_OFFER \
 node latch.mjs status http://127.0.0.1:8787 task_YOUR_TASK
 ```
 
-The CLI generates a random idempotency key for each new invocation. Library users should reuse their key when retrying the same commit. Use `node latch.mjs --help` for all commands.
+Library users must reuse the same idempotency key when retrying the same commit.
 
-## Provider quick start
-
-Scaffold a read-only local provider without overwriting existing files:
+## Connect a provider
 
 ```sh
 npx --yes github:Balanov/latch init my-latch-service
@@ -85,55 +66,50 @@ npm install
 node service.mjs
 ```
 
-Or integrate the exported functions directly:
+Or use `createLatchServer(card, handlers, options)` and `listen(server, options)` from `latch-protocol`. A write capability needs separate `quote` and `commit` handlers:
 
-```js
-import { createLatchServer, listen } from "latch-protocol";
+- `quote` returns `summary`, `terms`, and expiry without performing the effect.
+- `commit` performs it only after exact offer/approval validation and idempotency handling.
+- The provider still owns authorization, complete schema validation, accurate terms, rate limits, and external effects.
 
-const server = createLatchServer({
-  latch: "0.1",
-  name: "Repair booking",
-  description: "Availability and repair appointments",
-  url: "https://repair.example/",
-  endpoint: "https://repair.example/latch",
-  capabilities: [{
-    id: "availability.read",
-    description: "Read available repair slots",
-    mode: "read",
-    input: { type: "object", additionalProperties: false },
-    effects: "none",
-    approval: "never"
-  }]
-}, {
-  async ask() {
-    return { slots: ["2026-11-05T10:00:00Z"] };
-  }
-});
-
-await listen(server, { port: 8787 }); // local HTTP; use HTTPS in production
-```
-
-For a write capability, implement `quote` separately from `commit`. Return `summary`, `terms`, and an expiry from `quote`; perform the external action only in `commit`. The reference runtime validates the exact offer and approval digests, checks expiry, and deduplicates commit handling. The provider remains responsible for real authorization, accurate terms, durable idempotency, rate limits, and the actual effect. See [SPEC.md](SPEC.md) and [SECURITY.md](SECURITY.md).
-
-## No runtime? Use the wire contract
-
-```http
-GET /.well-known/latch.json
-Accept: application/latch+json, application/json
-```
+A direct read needs no runtime:
 
 ```http
 POST /latch
 Content-Type: application/json
 
-{"latch":"0.1","id":"req_1","op":"ask","capability":"availability.read","input":{}}
+{"latch":"0.1","id":"req_1","op":"ask","capability":"materials.list","input":{}}
 ```
 
-The other operations are `quote`, `commit`, `status`, and `cancel`. Domain-specific inputs use JSON Schema; the dependency-free reference supports the subset documented in `validateInput`, not the entire JSON Schema specification. Implementations in other languages can reproduce the short canonicalization and digest rules directly.
+The other operations are `quote`, `commit`, `status`, and `cancel`. See [SPEC.md](SPEC.md) for canonical JSON, expiry, approval, replay, and security rules. The dependency-free validator supports a documented JSON Schema subset, not the full specification.
 
-## Optional MCP adapter
+## Persistence and caller isolation
 
-LATCH does not require MCP, but an MCP host can use the included stdio bridge:
+The default is in-memory. For restart-safe local use, add the single-writer file store and an explicit authentication verifier:
+
+```js
+import { createDemoProvider, createFileStore, listen } from "latch-protocol";
+
+const server = createDemoProvider({
+  store: createFileStore("./data/latch.json"),
+  authenticate: async (request) => verifyRequest(request)
+  // Your verifier returns a stable principal id or null.
+});
+await listen(server, { port: 8787 });
+// On shutdown: await server.latch.close();
+```
+
+Offers, tasks, idempotency records, and pending commits are scoped by the returned principal. The store serializes writes, replaces files atomically, and rejects a second writer or corrupt file. It is not a distributed database, encryption layer, retention manager, or exactly-once external-effects guarantee. Implement the async `get`/`set` store adapter for a production database.
+
+Client responses are size-limited while streaming. Timeouts return `504 timeout`. Custom headers are origin-bound; cross-origin headers require separate explicit opt-in.
+
+## Independent PHP provider
+
+`providers/php/` implements the simulated provider for PHP 8.2 without Composer. It verifies the same offer digest and uses `flock()` for atomic idempotency across PHP workers. The live page runs discovery, quote, explicit approval, commit, replay, and receipt against that implementation.
+
+The public demo uses CORS `*` only because it has no credentials or real effects. Do not copy that policy to private or consequential services. Deployment and limitations: [providers/php/README.md](providers/php/README.md).
+
+## Optional MCP bridge
 
 ```json
 {
@@ -146,65 +122,58 @@ LATCH does not require MCP, but an MCP host can use the included stdio bridge:
 }
 ```
 
-The bridge exposes discovery, read, quote, commit, and status tools. A model calling `latch_commit` is **not** itself proof of human approval. The host must present the actual offer and enforce its trusted approval policy before calling the tool. Use a `--target` argument only for a provider origin you trust.
+The host must show the actual offer and enforce approval before calling `latch_commit`. A tool call or `cli-explicit` claim is not verified human identity.
 
-## Two adoption paths, no spam
-
-**Provider first:** publish `/.well-known/latch.json` and your endpoint. Any compatible agent can discover it directly.
-
-**Agent first:** if no card exists, generate a reviewable handoff:
+## Missing a provider?
 
 ```sh
 node latch.mjs invite https://service.example
 ```
 
-This only prints text. It does not contact the service, post an issue, open a PR, install code, or claim that a connection exists. A person can send that text to the provider; after explicit integration, retry discovery. Every card can link to the MIT specification, creating a natural two-sided distribution loop without a central broker or automated solicitations.
+This prints reviewable text only. It does not contact the provider, post an issue, install code, or establish a connection. A person can send it through an existing channel; retry discovery after explicit integration.
 
-## Measured, not marketed
+## Benchmarks and checks
 
-Run `npm run bench`. Reports include Node/OS/CPU, commands, scope, summary statistics, and raw samples in `bench/results/`. See [BENCHMARKS.md](BENCHMARKS.md) for the latest measured file size, cold CLI start, per-operation loopback latency, and full flow.
+```sh
+npm test
+npm run bench
+npm ci --prefix bench/competitors --ignore-scripts
+npm run bench:compare
+node test/browser-check.mjs
+```
 
-These are local measurements of this implementation, not cross-protocol rankings or production latency claims. They exclude public network transit, TLS, durable storage, external APIs, payments, manufacturing, and delivery. Equivalent implementations and workloads would be required for a fair comparison.
+- `BENCHMARKS.md`: intrinsic file size, cold start, and local full-flow measurements.
+- `COMPARISONS.md`: four rotated rounds of equivalent read calls against official MCP SDK 1.32.2, with raw samples and environment.
+- `test/browser-check.mjs`: live UI, approval invalidation, replay, receipt, clipboard, keyboard, exact 375/768/1024/1440px layouts, console/network failures. Set `CHROME_BIN` when needed.
+- CI runs tests and both benchmark jobs on Node 20 and 24. The SDK is only a benchmark dev-dependency.
 
-## Boundaries worth reading
+These are local measurements, not production latency or a universal protocol ranking. Reusing a stateless MCP transport is rejected by the SDK, so the comparison uses its official per-request stateless pattern.
 
-- A digest binds content. It does not authenticate a person, provider, or business claim.
-- `cli-explicit` records a local confirmation method. It is not verified human identity.
-- A receipt marked `provider_assertion` is what the provider reports. It is not independent evidence of physical completion.
-- Idempotency deduplicates handling inside a retention window. It cannot undo an external effect or guarantee exactly-once reality.
-- Public endpoints must use HTTPS. Discovery rejects redirects and defaults to same-origin endpoints.
-- Remote cards, descriptions, inputs, results, and receipts are untrusted data, not agent instructions.
-- The reference stores offers, tasks, and idempotency results in memory with no authentication or retention manager. Add production controls before exposing consequential operations.
-- LATCH does not replace payment, identity, authorization, rich commerce, general agent delegation, or deterministic workflow standards. Compose with the appropriate layer.
+## Boundaries
 
-## Repository map
+- A digest binds content, not a person, provider, or business claim.
+- A `provider_assertion` receipt is not independent physical evidence.
+- Idempotency cannot undo an external effect or promise exactly-once reality.
+- Remote cards, descriptions, and results are untrusted data, not agent instructions.
+- Default storage is in-memory and unauthenticated. Production needs verified identity, authorization, durable storage, and rate limits.
+- The PHP demo never downloads models or performs real work.
 
-| Path | Purpose |
-| --- | --- |
-| `latch.mjs` | Reference client/server, CLI, demo, trace recorder, MCP adapter |
-| `SPEC.md` | LATCH 0.1 wire contract and security boundaries |
-| `test/latch.test.mjs` | End-to-end, failure, concurrency, CLI, and MCP tests |
-| `bench/` | Repeatable local measurements and raw reports |
-| `app/` | Zero-dependency bilingual static project page |
-| `docs/RESEARCH.md` | Competitive/protocol research and design rationale |
-| `llms.txt`, `SKILL.md` | Progressive, optional agent guidance |
+See [SECURITY.md](SECURITY.md) and [docs/RESEARCH.md](docs/RESEARCH.md).
 
-## Contribute, fork, reimplement
+## Forks
 
-MIT. No CLA. No permission needed to fork or implement the contract in another language. Run `npm test` and `npm run bench`, preserve unknown-field tolerance, and update the spec, fixtures, and tests together. See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports follow [SECURITY.md](SECURITY.md), not public issues.
-
-Independent implementations, language ports, interoperability fixtures, and real-provider adapters are especially welcome. Do not add a mandatory registry, telemetry, silent installers, or fake evidence to make the project look bigger.
+MIT. No CLA. Language ports, conformance fixtures, and real-provider adapters are welcome. Run tests and benchmarks before a PR. Security reports follow `SECURITY.md`, not public issues.
 
 ## Cite
 
-See [CITATION.cff](CITATION.cff). GitHub can generate APA/BibTeX from that file.
+See [CITATION.cff](CITATION.cff).
 
 ```bibtex
 @software{balanov2026latch,
   author = {Balanov, Anton},
   title = {LATCH: One Tiny HTTPS Contract Between Any Agent and Any Service},
   year = {2026},
-  version = {0.1.0},
+  version = {0.2.0},
   license = {MIT},
   url = {https://github.com/Balanov/latch}
 }

@@ -1,0 +1,8 @@
+Options -Indexes
+AddType application/latch+json .json
+<IfModule mod_headers.c>
+  Header set Access-Control-Allow-Origin "*"
+  Header set Access-Control-Allow-Headers "Content-Type, Idempotency-Key"
+  Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

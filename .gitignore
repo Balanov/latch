@@ -1,6 +1,7 @@
 node_modules/
 .test-tmp/
 .tools/
+.work/
 app/dist/
 app/.preview-*
 *.log

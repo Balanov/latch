@@ -1,0 +1,9 @@
+{
+  "name": "latch-benchmark-competitors",
+  "private": true,
+  "type": "module",
+  "description": "Development-only reference SDK used for equivalent local benchmark comparisons. Not a LATCH runtime dependency.",
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
+  }
+}

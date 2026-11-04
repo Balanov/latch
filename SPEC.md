@@ -201,3 +201,16 @@ LATCH does not provide a sandbox, reputation score, global service discovery, pa
 Agents must treat all remote fields as untrusted data, enforce user policy before commit, and avoid leaking private input to a discovered endpoint. Providers must enforce authentication, authorization, complete input schemas, rate limits, CSRF protections where browser cookies are used, idempotency persistence, and safe logging. The reference in-memory runtime is a development implementation, not a production store.
 
 See `SECURITY.md` for the concrete threat model and disclosure policy.
+
+## 8. Optional deployment adapters
+
+These adapters do not change the wire contract. `createLatchServer(card, handlers, options)` accepts:
+
+- `store`: async `get(key)` and `set(key, value)` methods. Keys are opaque to the adapter and include caller, object kind, and ID. A provider can implement a database adapter without changing LATCH messages.
+- `authenticate(request)`: returns a stable principal ID (or `{id}`) for an authenticated caller, or a falsy value for rejection. Offers, tasks, idempotency entries, and in-flight commits are scoped to that principal. Without this option the development principal is `public`.
+
+`createFileStore(path)` is the optional single-writer reference store. It serializes writes in one process, writes an atomic temporary-file replacement, and holds an exclusive lock file. A second writer is rejected; a corrupt store fails closed without being overwritten. Release it with `await server.latch.close()` or `store.close()`. A stale lock is recovered only when its recorded PID is not running. The file store is not a distributed transaction manager, encryption layer, retention manager, or guarantee of exactly-once external effects. Keep it outside the public document root and use a durable database for multi-process or multi-node production deployments.
+
+Client responses are read with a byte limit while streaming, not after buffering. Timeouts return `504 timeout` with `retryable: true`. Custom headers are forwarded only to the configured origin. When `allowCrossOrigin` is explicitly enabled, custom headers additionally require `allowCrossOriginHeaders`. The request tracing hook excludes those custom headers.
+
+`createDemoProvider(options)` accepts the same store/authentication options for local testing. The PHP provider in `providers/php/` is an independent simulated implementation, not a production identity or payment system. Its public CORS policy is only for the no-credential demo; it must not be copied to private or consequential production endpoints.
