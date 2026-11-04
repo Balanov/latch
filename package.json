@@ -2,7 +2,7 @@
   "name": "latch-protocol",
   "version": "0.1.0",
   "description": "One tiny HTTPS contract between any agent and any service.",
-  "homepage": "https://latch.balanov.pro/",
+  "homepage": "https://latch.kimi.page/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Balanov/latch.git"

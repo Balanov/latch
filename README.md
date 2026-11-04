@@ -2,6 +2,8 @@
 
 **Any agent. Any service. One small HTTPS contract.**
 
+**[Project page](https://latch.kimi.page/) · [Specification](SPEC.md) · [MIT license](LICENSE)**
+
 LATCH lets an HTTP-capable agent discover a service, read a capability, obtain an exact quote, commit only the approved offer, and retrieve a task receipt. One well-known JSON card. One POST endpoint. Five operations. No SDK required.
 
 [![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)

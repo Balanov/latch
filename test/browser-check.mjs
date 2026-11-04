@@ -10,7 +10,8 @@ import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = path.join(root, ".test-tmp", "browser-check");
 const profile = path.join(root, ".test-tmp", "browser-profile");
-const origin = "http://127.0.0.1:7183";
+const origin = process.env.LATCH_TEST_ORIGIN || "http://127.0.0.1:7183";
+const localPreview = !process.env.LATCH_TEST_ORIGIN;
 const candidates = [
   process.env.CHROME_BIN,
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -34,13 +35,15 @@ let browser;
 let dev;
 let cdp;
 try {
-  dev = spawn(process.execPath, [path.join(root, "app", "dev.mjs"), "--host=127.0.0.1", "--port=7183"], { cwd: root, stdio: "ignore" });
-  for (let attempt = 0; ; attempt++) {
-    try {
-      if ((await fetch(origin)).ok) break;
-    } catch {}
-    if (attempt === 50) throw new Error("The local static server did not start.");
-    await sleep(100);
+  if (localPreview) {
+    dev = spawn(process.execPath, [path.join(root, "app", "dev.mjs"), "--host=127.0.0.1", "--port=7183"], { cwd: root, stdio: "ignore" });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if ((await fetch(origin)).ok) break;
+      } catch {}
+      if (attempt === 50) throw new Error("The local static server did not start.");
+      await sleep(100);
+    }
   }
   await rm(profile, { recursive: true, force: true });
   await mkdir(profile, { recursive: true });
@@ -208,15 +211,17 @@ try {
     dev.kill();
     await exited;
   }
-  try {
-    await fetch(origin, { signal: AbortSignal.timeout(1000) });
-    throw new Error("The preview server is still running.");
-  } catch (error) {
-    if (error.message === "The preview server is still running.") throw error;
+  if (localPreview) {
+    try {
+      await fetch(origin, { signal: AbortSignal.timeout(1000) });
+      throw new Error("The preview server is still running.");
+    } catch (error) {
+      if (error.message === "The preview server is still running.") throw error;
+    }
   }
   await rm(profile, { recursive: true, force: true });
   await writeFile(path.join(output, "report.json"), JSON.stringify(report, null, 2));
-  console.log("Temporary browser and preview server stopped");
+  console.log(localPreview ? "Temporary browser and preview server stopped" : "Temporary browser stopped; public origin left untouched");
 }
 
 async function connect(url) {
