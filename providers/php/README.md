@@ -28,3 +28,13 @@ node test/public-provider-check.mjs https://balanov.pro/latch/api/latch.json
 The check covers discovery, read, exact quote, approval, commit, replay, 12 concurrent same-key commits, receipt, and expected error responses.
 
 The live browser client runs discovery, independent digest verification, explicit approval, commit, same-key replay, and receipt retrieval. The provider outcome is always a simulation.
+
+## Verified deployment
+
+Verified on 2026-11-05 with the PHP provider from commit `89c36ed`:
+
+- Node 20.20.2 on the hosting machine completed all 10 checks over the public HTTPS endpoint. [Raw report](../../bench/results/public-provider-2026-11-04T22-41-01Z.json)
+- External CI completed the same 10 checks on Node 20 and Node 24. [Run](https://github.com/Balanov/latch/actions/runs/41928358107)
+- External Chrome on Node 24 completed all 14 browser groups against the deployed page and PHP endpoint. [Run](https://github.com/Balanov/latch/actions/runs/41931702902)
+
+These are timestamped functional checks, not an uptime guarantee or a production-readiness claim. External network paths can be temporarily unavailable.
