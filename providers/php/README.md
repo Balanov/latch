@@ -15,16 +15,16 @@ The default store is `latch-private/latch-demo.json` beside `public_html`, for t
 
 ## Deploy
 
-Copy the contents of this directory into `api/` under a PHP 8.2 document root. Update `url` and `endpoint` in `latch.json` for the actual HTTPS origin. `OPTIONS -Indexes` and `nosniff` are in `.htaccess`.
+Copy the contents of this directory into `public_html/latch/api/` on PHP 8.2. Update `url` and `endpoint` in `latch.json` for the actual HTTPS origin. `OPTIONS -Indexes` and `nosniff` are in `.htaccess`.
 
 CORS is `*` only because this is a public no-credential simulation with no real effect. Do not reuse that policy for private data or consequential endpoints. Restrict origins and add real authentication, authorization, rate limits, persistent production storage, and a domain-specific approval proof when deploying real work.
 
-Run `php -l index.php` on the target server, then use the Node client as a cross-language conformance check:
+Run `php -l index.php` on the target server, then run the full Node → PHP check from the repository root:
 
-```js
-import { LatchClient } from "latch-protocol";
-const client = new LatchClient("https://balanov.pro/latch/api/latch.json");
-console.log((await client.ask("materials.list")).result);
+```sh
+node test/public-provider-check.mjs https://balanov.pro/latch/api/latch.json
 ```
+
+The check covers discovery, read, exact quote, approval, commit, replay, 12 concurrent same-key commits, receipt, and expected error responses.
 
 The live browser client runs discovery, independent digest verification, explicit approval, commit, same-key replay, and receipt retrieval. The provider outcome is always a simulation.
