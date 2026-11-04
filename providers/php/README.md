@@ -11,7 +11,7 @@ A second implementation of the LATCH 0.1 simulated provider for PHP 8.2. It uses
 - No model download, payment, manufacturing, delivery, authentication, or claim of physical evidence.
 - Expired offers are pruned; idempotency is retained for one hour and at most 50 recent simulated tasks are kept.
 
-`LATCH_DEMO_STORE` can override the storage path. Protect that file as sensitive data and keep it outside the document root. The default is derived from the installation directory under the system temporary directory.
+The default store is `latch-private/latch-demo.json` beside `public_html`, for the `public_html/latch/api/` layout. For another layout set `LATCH_DEMO_STORE` to a writable path outside the document root. Protect the store and its `.errors.log` as sensitive data.
 
 ## Deploy
 

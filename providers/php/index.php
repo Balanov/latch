@@ -82,8 +82,14 @@ function withStore(callable $callback): array {
     if (!$locked) { fclose($handle); fail('store_busy', 'The demo store is busy; retry later.', 503); }
     try {
         $raw = stream_get_contents($handle);
-        $state = $raw === '' ? (object)['offers' => (object)[], 'tasks' => (object)[], 'idempotency' => (object)[]] : (object)json_decode($raw, true);
-        if (!$state instanceof stdClass || !isset($state->offers, $state->tasks, $state->idempotency)) fail('store_corrupt', 'The demo store is invalid; it was not changed.', 500);
+        if ($raw === false) fail('store_unavailable', 'The demo store cannot be read.', 503);
+        $state = $raw === '' ? ['offers' => [], 'tasks' => [], 'idempotency' => []] : json_decode($raw, true);
+        if (!is_array($state)) fail('store_corrupt', 'The demo store is invalid; it was not changed.', 500);
+        foreach (['offers', 'tasks', 'idempotency'] as $kind) {
+            if (!isset($state[$kind]) || !is_array($state[$kind])) fail('store_corrupt', 'The demo store is invalid; it was not changed.', 500);
+        }
+        $state = (object)$state;
+        foreach (['offers', 'tasks', 'idempotency'] as $kind) $state->{$kind} = (object)$state->{$kind};
         prune($state);
         [$result, $changed] = $callback($state);
         if ($changed) {
