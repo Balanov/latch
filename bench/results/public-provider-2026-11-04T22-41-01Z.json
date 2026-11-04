@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "provider": "https://balanov.pro/latch/api/latch.json",
+  "started_at": "2026-11-04T22:41:01.342Z",
+  "finished_at": "2026-11-04T22:41:01.652Z",
+  "checks": [
+    {
+      "name": "same-origin discovery over HTTPS",
+      "passed": true,
+      "details": {
+        "endpoint": "https://balanov.pro/latch/api/"
+      }
+    },
+    {
+      "name": "independent PHP read",
+      "passed": true
+    },
+    {
+      "name": "quote returns exact simulated terms and a valid digest",
+      "passed": true
+    },
+    {
+      "name": "explicit approval and simulated commit",
+      "passed": true
+    },
+    {
+      "name": "same-key replay preserves the task and updates only correlation ID",
+      "passed": true
+    },
+    {
+      "name": "12 concurrent same-key commits return one task",
+      "passed": true
+    },
+    {
+      "name": "status returns the provider receipt boundary",
+      "passed": true
+    },
+    {
+      "name": "task_not_cancellable returns HTTP 409",
+      "passed": true
+    },
+    {
+      "name": "task_not_found returns HTTP 404",
+      "passed": true
+    },
+    {
+      "name": "approval_digest_mismatch returns HTTP 409",
+      "passed": true
+    }
+  ]
+}

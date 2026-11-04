@@ -1,0 +1,23 @@
+name: Public browser
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: google-chrome --version
+      - name: Check deployed UI and PHP flow
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+          LATCH_TEST_ORIGIN: https://balanov.pro/latch/
+        run: node test/browser-check.mjs
