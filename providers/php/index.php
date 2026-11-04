@@ -215,6 +215,7 @@ try {
     http_response_code($error->httpStatus);
     echo json_encode(['latch' => PROTOCOL, 'id' => is_string($requestId) ? $requestId : null, 'ok' => false, 'error' => ['code' => $error->latchCode, 'message' => $error->getMessage(), 'retryable' => $error->retryable]], JSON_FLAGS);
 } catch (Throwable $error) {
+    @file_put_contents(storePath() . '.errors.log', gmdate('c') . ' ' . $error::class . ': ' . $error->getMessage() . ' at ' . $error->getFile() . ':' . $error->getLine() . "\n", FILE_APPEND | LOCK_EX);
     http_response_code(500);
     echo json_encode(['latch' => PROTOCOL, 'id' => is_string($requestId) ? $requestId : null, 'ok' => false, 'error' => ['code' => 'internal_error', 'message' => 'The provider failed to process the request.', 'retryable' => true]], JSON_FLAGS);
 }
