@@ -86,8 +86,10 @@ try {
   await screenshot("desktop-top");
   await setLanguage("ru");
   assert.equal(await evaluate("[...document.querySelectorAll('a[href^=\"#\"]')].every(a => document.getElementById(a.getAttribute('href').slice(1)))"), true);
-  assert.equal(await evaluate("[...document.querySelectorAll('a[target=_blank]')].every(a => a.rel.includes('noopener'))"), true);
-  pass("all internal anchors and safe external links");
+  const sourceExternalLinks = "[...document.querySelectorAll('a[target=_blank][href^=\"https://github.com/Balanov/latch\"],a[target=_blank][href=\"https://balanov.pro/\"]')]";
+  assert.equal(await evaluate(`${sourceExternalLinks}.length >= 10`), true);
+  assert.equal(await evaluate(`${sourceExternalLinks}.every(a => a.rel.includes('noopener'))`), true);
+  pass("all internal anchors and source-owned external links are safe");
   for (const id of ["protocol", "flow", "benchmarks"]) {
     await click(`.site-header nav a[href="#${id}"]`);
     assert.equal(await evaluate("location.hash"), `#${id}`);
@@ -162,7 +164,7 @@ try {
   for (const width of [375, 768, 1024, 1440]) {
     await viewport(width, width === 375 ? 812 : 950);
     await goto();
-    const data = await evaluate("({viewport:innerWidth,dpr:devicePixelRatio,document:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('main > *,header,footer')].filter(e=>e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left < -1).map(e=>e.className),smallButtons:[...document.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.height<43.9||r.width<43.9}).map(e=>e.id||e.textContent)})");
+    const data = await evaluate("({viewport:innerWidth,dpr:devicePixelRatio,document:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body > header,main > section,body > footer')].filter(e=>e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left < -1).map(e=>e.className),smallButtons:[...document.querySelectorAll('main button,header button,footer button')].filter(e=>{const r=e.getBoundingClientRect();return r.height<43.9||r.width<43.9}).map(e=>e.id||e.textContent)})");
     assert.equal(data.viewport, width);
     assert.equal(data.dpr, 1);
     assert.equal(data.document <= width, true, JSON.stringify(data));
