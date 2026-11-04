@@ -56,7 +56,7 @@ function publicTask(array $task): array {
 function storePath(): string {
     $configured = getenv('LATCH_DEMO_STORE');
     if (is_string($configured) && $configured !== '') return $configured;
-    return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'latch-demo-' . hash('sha256', __DIR__) . '.json';
+    return dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'latch-private' . DIRECTORY_SEPARATOR . 'latch-demo.json';
 }
 function prune(object $state): void {
     $now = time();
@@ -188,7 +188,7 @@ try {
             $taskId = id('task');
             $task = [
                 'id' => $taskId, 'capability' => 'print3d.order', 'state' => 'succeeded', 'created_at' => isoTime(),
-                'result' => ['order_id' => id('demo_order'), 'status' => 'recorded_simulation', 'offer_digest' => $stored['digest'], 'model_url' => $stored['input']->model_url, 'note' => 'No object was printed, paid for, or shipped. This is an independent PHP simulation.'],
+                'result' => ['order_id' => id('demo_order'), 'status' => 'recorded_simulation', 'offer_digest' => $stored['digest'], 'model_url' => $stored['input']['model_url'], 'note' => 'No object was printed, paid for, or shipped. This is an independent PHP simulation.'],
                 '_offerDigest' => $stored['digest'], '_requestDigest' => $fingerprint
             ];
             $receipt = ['id' => id('rcpt'), 'task_id' => $taskId, 'offer_digest' => $stored['digest'], 'request_digest' => $fingerprint, 'issued_at' => isoTime(), 'evidence' => 'provider_assertion'];
