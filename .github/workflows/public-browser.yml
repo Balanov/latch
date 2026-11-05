@@ -20,4 +20,5 @@ jobs:
         env:
           CHROME_BIN: /usr/bin/google-chrome
           LATCH_TEST_ORIGIN: https://balanov.pro/latch/
+          LATCH_GITHUB_LIVE: '1'
         run: node test/browser-check.mjs

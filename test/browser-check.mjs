@@ -87,26 +87,43 @@ try {
   await cdp.send("Runtime.enable");
   await cdp.send("Log.enable");
   await cdp.send("Network.enable");
+  await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+  await cdp.send("Browser.grantPermissions", { origin: new URL(origin).origin, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
+  if (!process.env.LATCH_GITHUB_LIVE) {
+    report.githubCounterFixture = { stars: 169, forks: 0 };
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.fetch = new Proxy(window.fetch, { apply(target,self,args) { if (String(args[0]).includes('api.github.com/repos/Balanov/latch')) return Promise.resolve(new Response(JSON.stringify({stargazers_count:169,forks_count:0}),{status:200,headers:{'content-type':'application/json'}})); return Reflect.apply(target,self,args); } });" });
+  }
   await viewport(1440, 1000);
   await navigate(target);
   await waitFor("document.querySelector('#latch-read')?.textContent.includes('ms')");
   await waitFor("document.querySelector('#stats-status')?.textContent.match(/данные GitHub|live GitHub/)");
-  pass("cold load and actual GitHub counters", await evaluate("({lang:document.documentElement.lang,stars:document.querySelector('#stars-value').textContent,forks:document.querySelector('#forks-value').textContent})"));
-  await screenshot("desktop-top");
+  await waitFor("document.fonts.check('16px Onest')");
+  const counters = await evaluate("({lang:document.documentElement.lang,stars:document.querySelector('#stars-value').textContent,forks:document.querySelector('#forks-value').textContent,visible:[...document.querySelectorAll('.repo-count')].every(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>=44&&r.top>=0&&r.bottom<=innerHeight})})");
+  assert.match(counters.stars, /\d/);
+  assert.match(counters.forks, /\d/);
+  assert.equal(counters.visible, true);
+  pass("cold load, local fonts, and visible GitHub counters", counters);
   await click('[data-lang="ru"]');
+  await screenshot("desktop-top");
   assert.equal(await evaluate("[...document.querySelectorAll('a[href^=\"#\"]')].every(a => document.getElementById(a.getAttribute('href').slice(1)))"), true);
   assert.equal(await evaluate("[...document.querySelectorAll('a[target=_blank]')].every(a => a.rel.includes('noopener'))"), true);
   pass("all internal anchors and safe external links");
-  for (const id of ["try", "bench", "integrate"]) {
+  for (const id of ["case", "business", "try", "integrate"]) {
     await click(`.header nav a[href="#${id}"]`);
     assert.equal(await evaluate("location.hash"), `#${id}`);
   }
   await click('[data-lang="en"]');
-  assert.match(await evaluate("document.querySelector('h1').textContent"), /Agent/);
+  assert.match(await evaluate("document.querySelector('h1').textContent"), /agent/i);
   assert.equal(await evaluate("localStorage.getItem('latch-language')"), "en");
   await click('[data-lang="ru"]');
-  assert.match(await evaluate("document.querySelector('h1').textContent"), /Агент/);
+  assert.match(await evaluate("document.querySelector('h1').textContent"), /агент/i);
   pass("navigation, RU/EN content, and persistence");
+  await click("#case-pause");
+  assert.equal(await evaluate("document.querySelector('#case-pause').getAttribute('aria-pressed')"), "true");
+  await click('[data-case-step="3"]');
+  assert.equal(await evaluate("document.querySelector('[data-case-step=\"3\"]').getAttribute('aria-pressed')"), "true");
+  assert.match(await evaluate("document.querySelector('#case-status').textContent"), /Подтвердить/);
+  pass("order animation, pause, and direct stage selection");
   await click("#discover-button");
   await waitFor("document.querySelector('#live-status').textContent.includes('PHP endpoint')");
   assert.match(await evaluate("document.querySelector('#live-json').textContent"), /print3d.order/);
@@ -154,29 +171,43 @@ try {
   await key("ArrowRight", "ArrowRight", 39);
   assert.match(await evaluate("document.querySelector('#example-code').textContent"), /createFileStore/);
   pass("reset and keyboard-accessible integration examples");
-  await cdp.send("Browser.grantPermissions", { origin: new URL(origin).origin, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
   await evaluate("document.querySelector('.citation').open=true");
   for (const [targetId, expected] of [["quick-code", "npm test"], ["example-code", "createFileStore"], ["invite-code", "latch.mjs invite"], ["bibtex", "@software{balanov2026latch"]]) {
     await trustedClick(`[data-copy-target="${targetId}"]`);
-    await waitFor("document.querySelector('#toast').textContent.includes('Скопировано')");
+    await waitFor(`navigator.clipboard.readText().then(text => text.includes(${JSON.stringify(expected)}))`);
     assert.match(await evaluate("navigator.clipboard.readText()"), new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   pass("quick start, integration, invite, and BibTeX clipboard content");
   await waitFor("!document.querySelector('#toast').classList.contains('visible')", 5000);
   for (const width of [375, 768, 1024, 1440]) {
     await viewport(width, width === 375 ? 812 : 950);
-    await goto();
-    const data = await evaluate("({viewport:innerWidth,dpr:devicePixelRatio,document:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body>header,main>section,body>footer')].filter(e=>e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left < -1).map(e=>e.className),smallButtons:[...document.querySelectorAll('main button,header button,footer button')].filter(e=>{const r=e.getBoundingClientRect();return r.height<43.9||r.width<43.9}).map(e=>e.id||e.textContent)})");
+    await evaluate("document.documentElement.style.scrollBehavior='auto';scrollTo(0,0)");
+    const data = await evaluate("({viewport:innerWidth,dpr:devicePixelRatio,document:document.documentElement.scrollWidth,repoInBounds:[...document.querySelectorAll('.repo-count')].every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}),overflow:[...document.querySelectorAll('body>header,main>section,body>footer')].filter(e=>e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left < -1).map(e=>e.className),smallButtons:[...document.querySelectorAll('main button,header button,footer button')].filter(e=>{const r=e.getBoundingClientRect();return r.height<43.9||r.width<43.9}).map(e=>e.id||e.textContent)})");
     assert.equal(data.viewport, width);
     assert.equal(data.dpr, 1);
     assert.equal(data.document <= width, true, JSON.stringify(data));
+    assert.equal(data.repoInBounds, true);
     assert.deepEqual(data.overflow, []);
     assert.deepEqual(data.smallButtons, []);
     await screenshot(`viewport-${width}`);
+    if (width === 375) {
+      await click('.header nav a[href="#case"]');
+      await screenshot("case-mobile");
+      await click('.header nav a[href="#try"]');
+      await screenshot("live-mobile");
+    }
     pass(`exact ${width}px responsive layout`, data);
   }
   await viewport(1440, 950);
   await screenshot("desktop-full", true);
+  await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+  await navigate(target);
+  assert.equal(await evaluate("document.querySelector('#case-pause').disabled"), true);
+  assert.equal(await evaluate("document.querySelector('[data-case-step=\"4\"]').getAttribute('aria-pressed')"), "true");
+  await click('[data-case-step="1"]');
+  assert.equal(await evaluate("document.querySelector('[data-case-step=\"1\"]').getAttribute('aria-pressed')"), "true");
+  await cdp.send("Emulation.setEmulatedMedia", { features: [] });
+  pass("reduced motion and manual stage selection");
   const injected = await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.fetch = new Proxy(window.fetch, { apply(target,self,args) { if (String(args[0]).includes('api.github.com/repos/Balanov/latch')) return Promise.reject(new TypeError('Intentional GitHub failure test')); return Reflect.apply(target,self,args); } });" });
   await navigate(target);
   await waitFor("document.querySelector('#stats-status')?.textContent.match(/недоступны|unavailable/)");
@@ -197,6 +228,12 @@ try {
 } catch (error) {
   report.passed = false;
   report.fatal = error.stack;
+  if (cdp) {
+    report.failureUi = await evaluate("({toast:document.querySelector('#toast')?.textContent,active:document.activeElement?.outerHTML?.slice(0,300),scrollY,selection:getSelection()?.toString().slice(0,200)})").catch(() => null);
+    report.failureClipboard = await evaluate("navigator.clipboard.readText().catch(error => `READ ERROR: ${error.message}`)").catch(error => `EVALUATION ERROR: ${error.message}`);
+    await screenshot("failure").catch(() => {});
+    console.error(JSON.stringify({ ...report.failureUi, clipboard: report.failureClipboard }));
+  }
   console.error(error.stack);
   process.exitCode = 1;
 } finally {
@@ -289,11 +326,12 @@ async function click(selector) {
   await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   await sleep(100);
 }
+// Exercise the actual copy handler with clipboard permission granted by CDP.
+// Headless coordinate and key events are not treated as trusted user gestures here.
 async function trustedClick(selector) {
-  const point = await evaluate(`(() => {const e=document.querySelector(${JSON.stringify(selector)});e.scrollIntoView({block:'center',behavior:'instant'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
-  await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", ...point, button: "left", clickCount: 1 });
-  await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...point, button: "left", clickCount: 1 });
-  await sleep(100);
+  await cdp.send("Page.bringToFront");
+  await evaluate("window.focus()");
+  await click(selector);
 }
 async function key(keyValue, code, virtualKey) {
   await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key: keyValue, code, windowsVirtualKeyCode: virtualKey, nativeVirtualKeyCode: virtualKey });
