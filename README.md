@@ -1,8 +1,21 @@
-# LATCH
+<div align="center">
+  <img src="docs/readme/hero.png" alt="LATCH — quote, approve, commit and receipt through one small JSON/HTTPS boundary between agents and services" width="100%">
+  <p><strong>One tiny HTTPS contract between any agent and any service.</strong></p>
+  <p>One card · one POST endpoint · five operations · no SDK required · MIT</p>
+  <p>
+    <a href="#run">Run</a> ·
+    <a href="#connect-a-provider">Connect a provider</a> ·
+    <a href="SPEC.md">Specification</a> ·
+    <a href="#boundaries">Boundaries</a> ·
+    <a href="https://balanov.pro/latch/">Live demo</a> ·
+    <a href="README_RU.md">Русский</a>
+  </p>
+</div>
 
-JSON/HTTPS contract between an agent and a service. One card, one POST endpoint, five operations. No SDK required.
-
-**[Live Node ↔ PHP demo](https://balanov.pro/latch/) · [Specification](SPEC.md) · [MIT license](LICENSE)**
+<div align="center">
+  <img src="docs/readme/demo.gif" alt="Recorded LATCH trace: discovery, ask, quote, approval, commit and status, with digest verification and provider assertion receipt" width="100%">
+  <p><sub>Six recorded steps against the real local Node reference server. The provider and outcome are simulations: no payment, manufacturing or delivery. <a href="examples/trace.json">Trace</a>.</sub></p>
+</div>
 
 LATCH does not replace MCP, A2A, OpenAPI, UCP/ACP/AP2, identity, or payment systems. It provides a small boundary:
 
@@ -21,6 +34,13 @@ status  → task + provider_assertion receipt
 - No registry, account, telemetry, hosted proxy, automatic installer, or payment rail.
 
 > **Experimental wire version 0.1; implementation 0.2.0.** Demo orders are simulations: nothing is paid for, manufactured, or delivered.
+
+<div align="center">
+  <img src="docs/readme/architecture.png" alt="LATCH approval flow: inspect exact terms, approve the digest locally, commit with Idempotency-Key, then receive a provider assertion" width="100%">
+  <p><sub>Exact terms before effects. A digest binds content, not a person. A provider assertion is not independent physical evidence. <a href="SPEC.md">Protocol and security rules</a>.</sub></p>
+</div>
+
+**[Live Node ↔ PHP demo](https://balanov.pro/latch/) · [Specification](SPEC.md) · [MIT license](LICENSE)**
 
 ## Run
 
