@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="docs/readme/hero.png" alt="LATCH — quote, approve, commit and receipt through one small JSON/HTTPS boundary between agents and services" width="100%">
-  <p><strong>One tiny HTTPS contract between any agent and any service.</strong></p>
+  <img src="docs/readme/hero.png" alt="LATCH connects a customer's agent to a business service: quote and commit flow one way, offer and receipt return back, with approval between them" width="100%">
+  <p><strong>The connector between a customer's agent and a business service.</strong></p>
   <p>One card · one POST endpoint · five operations · no SDK required · MIT</p>
   <p>
     <a href="#run">Run</a> ·

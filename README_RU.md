@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="docs/readme/hero.png" alt="LATCH — quote, approve, commit и receipt через небольшой JSON/HTTPS-контракт" width="100%">
-  <p><strong>Один небольшой HTTPS-контракт между любым агентом и любым сервисом.</strong></p>
+  <img src="docs/readme/hero.png" alt="LATCH соединяет агента клиента и сервис бизнеса: quote и commit в одну сторону, offer и receipt обратно, approval между ними" width="100%">
+  <p><strong>Коннектор между агентом клиента и сервисом бизнеса.</strong></p>
   <p>Одна карточка · один POST endpoint · пять операций · MIT</p>
   <p><a href="README.md">English</a> · <a href="#запуск">Запуск</a> · <a href="#граница-безопасности">Граница безопасности</a> · <a href="SPEC.md">Спецификация</a> · <a href="https://balanov.pro/latch/">Живое демо</a></p>
 </div>
