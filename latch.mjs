@@ -151,9 +151,11 @@ export function validateCard(card) {
         errors.push(`${at} read capabilities must have no effects and no approval`);
       }
       if (capability.mode === "write" && capability.effects === "none") errors.push(`${at} write capability cannot have no effects`);
-      validateInput({}, capability.input || {}, `${at}.input`).forEach((error) => {
-        if (error.includes("must be object")) errors.push(`${at}.input must be an object schema`);
-      });
+      const declaredType = capability.input?.type;
+      if (declaredType !== undefined && !(Array.isArray(declaredType)
+        ? declaredType.includes("object") : declaredType === "object")) {
+        errors.push(at + " (" + capability.id + ").input must be an object schema; declared type: " + JSON.stringify(declaredType));
+      }
     });
   }
   if (errors.length) fail("invalid_card", "The LATCH card is invalid.", 422, { details: errors });
