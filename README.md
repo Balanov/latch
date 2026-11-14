@@ -12,7 +12,7 @@
   </p>
 </div>
 
-[![CI](https://github.com/Balanov/latch/actions/workflows/ci.yml/badge.svg)](https://github.com/Balanov/latch/actions/workflows/ci.yml)
+[![CI](https://github.com/Balanov/latch/actions/workflows/ci.yml/badge.svg)](https://github.com/Balanov/latch/actions/workflows/ci.yml) [![Latest release](https://img.shields.io/github/v/release/Balanov/latch)](https://github.com/Balanov/latch/releases/latest)
 
 <div align="center">
   <img src="docs/readme/demo.gif" alt="Recorded LATCH trace: discovery, ask, quote, approval, commit and status, with digest verification and provider assertion receipt" width="100%">
