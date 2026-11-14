@@ -201,3 +201,11 @@ See [CITATION.cff](CITATION.cff).
   url = {https://github.com/Balanov/latch}
 }
 ```
+
+## Related projects
+
+- [uncut](https://github.com/Balanov/uncut) — the lossless, headless coding-agent harness.
+- [shim](https://github.com/Balanov/shim) — a local-first harness for any model, MCP servers and Agent Skills.
+- [verdict](https://github.com/Balanov/verdict) — a local semantic verifier for agent tool calls.
+- [equal](https://github.com/Balanov/equal) — turns real API traffic into a local sandbox and an OpenAPI spec.
+
