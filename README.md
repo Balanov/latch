@@ -12,6 +12,8 @@
   </p>
 </div>
 
+[![CI](https://github.com/Balanov/latch/actions/workflows/ci.yml/badge.svg)](https://github.com/Balanov/latch/actions/workflows/ci.yml)
+
 <div align="center">
   <img src="docs/readme/demo.gif" alt="Recorded LATCH trace: discovery, ask, quote, approval, commit and status, with digest verification and provider assertion receipt" width="100%">
   <p><sub>Six recorded steps against the real local Node reference server. The provider and outcome are simulations: no payment, manufacturing or delivery. <a href="examples/trace.json">Trace</a>.</sub></p>
