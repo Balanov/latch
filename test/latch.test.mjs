@@ -17,7 +17,8 @@ import {
   listen,
   runDemoTrace,
   sha256,
-  validateInput
+  validateInput,
+  validateCard
 } from "../latch.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -529,4 +530,26 @@ test("fifty concurrent identical commits create exactly one task and invalid inp
 
 test.after(async () => {
   await rm(TEMP, { recursive: true, force: true });
+});
+
+for (const type of ["string", "array", ["string", "number"]]) {
+  test("card refuses non-object input schema " + JSON.stringify(type), () => {
+    const card = createDemoProvider().card;
+    card.capabilities[0].input = { type };
+    assert.throws(() => validateCard(card), (error) => {
+      assert.equal(error.code, "invalid_card");
+      assert.equal(error.status, 422);
+      assert.ok(error.details.some((detail) =>
+        detail.includes("materials.list") && detail.includes(JSON.stringify(type))));
+      return true;
+    });
+  });
+}
+
+test("card keeps object, object unions and unspecified input types", () => {
+  for (const input of [{ type: "object" }, { type: ["object", "null"] }, {}]) {
+    const card = createDemoProvider().card;
+    card.capabilities[0].input = input;
+    assert.equal(validateCard(card), true);
+  }
 });

@@ -55,7 +55,7 @@ The endpoint MUST be same-origin with the card unless a client policy explicitly
 
 The well-known suffix is intentionally `latch.json`; it is more precise than squatting on a generic metadata name. Deployments seeking formal interoperability should follow the registration process in RFC 8615. A path-local `latch.json` and an HTML `<link rel="latch" type="application/latch+json" href="...">` MAY be used on shared hosting where the origin root is unavailable.
 
-`input` uses JSON Schema. The dependency-free reference runtime validates the documented subset in `validateInput`; providers remain responsible for enforcing their complete schema. Unknown protocol fields MUST be ignored unless they are required by a negotiated extension.
+`input` uses JSON Schema. When its schema declares a type, it MUST include object; an omitted type remains allowed. The dependency-free reference runtime validates the documented subset in `validateInput`; providers remain responsible for enforcing their complete schema. Unknown protocol fields MUST be ignored unless they are required by a negotiated extension.
 
 ## 3. Envelope
 
