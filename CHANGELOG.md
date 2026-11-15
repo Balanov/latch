@@ -1,3 +1,8 @@
+## 0.2.1 - 2026-11-15
+
+### Fixed
+
+- A card whose capability input schema declares a type other than object is refused with `invalid_card` and HTTP 422, naming the capability and the declared type. An omitted type and a union that contains object stay valid.
 # Changelog
 
 ## 0.2.0 — 2026-11-04
